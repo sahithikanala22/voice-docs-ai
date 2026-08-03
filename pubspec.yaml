@@ -1,0 +1,55 @@
+name: voxi_translate
+description: "Voxi Translate — real-time speech-to-text, translation and text-to-speech."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^15.1.2
+
+  # Networking (used by translation datasource + reserved for cloud provider stubs)
+  dio: ^5.7.0
+
+  # Immutable models / codegen
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Local persistence
+  shared_preferences: ^2.3.3
+
+  # Speech, translation & TTS
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.2.0
+  translator: ^1.0.3+1
+
+  # Permissions & platform
+  permission_handler: ^11.3.1
+  share_plus: ^10.1.2
+
+  # UI
+  flag: ^7.0.0
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  build_runner: ^2.4.13
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+
+flutter:
+  uses-material-design: true
