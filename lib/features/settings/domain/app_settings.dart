@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:voxi_translate/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
 
 part 'app_settings.freezed.dart';
 part 'app_settings.g.dart';

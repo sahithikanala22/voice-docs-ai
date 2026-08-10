@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:voxi_translate/core/constants/supported_languages.dart';
-import 'package:voxi_translate/core/utils/time_ago.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/utils/time_ago.dart';
 
 import '../../data/history_item.dart';
 

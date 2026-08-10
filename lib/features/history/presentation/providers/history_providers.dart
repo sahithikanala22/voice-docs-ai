@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:voxi_translate/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/core/providers/core_providers.dart';
 
 import '../../data/history_item.dart';
 import '../../data/history_local_datasource.dart';

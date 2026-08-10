@@ -126,9 +126,9 @@ To switch providers, implement the stub and change one line — the Riverpod pro
 
 Both are also requested at runtime via `permission_handler` before the mic is used, with the result surfaced as a snackbar if denied.
 
-### iOS Podfile (manual step required)
+### iOS Podfile
 
-This project was scaffolded and verified on Windows, where CocoaPods and Xcode aren't available, so `ios/Podfile` doesn't exist yet — Flutter generates it lazily on first `pod install` on a Mac. Once you run `flutter build ios` or open the project in Xcode on a Mac for the first time, add this to the generated `Podfile`, inside the `post_install` block (see `permission_handler`'s README for the canonical version), so the microphone/speech permission dialogs actually fire on iOS:
+`ios/Podfile` is checked in (built from Flutter 3.44's own `Podfile-ios` template) and already includes the `post_install` block permission_handler needs to make the microphone/speech-recognizer permission dialogs fire on iOS. This project was scaffolded and verified on Windows, where CocoaPods and Xcode aren't available, so the Podfile has never actually been run through `pod install` — the first `flutter build ios` / `pod install` on a Mac is the real test of it. If CocoaPods regenerates or reformats it in a way that drops the custom block, re-add this inside `post_install`:
 
 ```ruby
 post_install do |installer|
@@ -160,7 +160,7 @@ end
 ### First-time setup
 
 ```bash
-cd voxi_translate
+cd ai_voice_docs
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # generates *.freezed.dart / *.g.dart
 ```

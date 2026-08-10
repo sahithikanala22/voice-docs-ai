@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:voxi_translate/core/widgets/empty_state.dart';
+import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 
 /// The scrollable transcript surface plus its action bar (copy / clear /
 /// speak / share) — the modernized equivalent of the reference app's white

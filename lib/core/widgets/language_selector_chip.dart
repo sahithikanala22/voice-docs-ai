@@ -1,6 +1,6 @@
 import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
-import 'package:voxi_translate/core/models/language.dart';
+import 'package:ai_voice_docs/core/models/language.dart';
 
 /// Pill-shaped control showing a flag + language name, used on the
 /// voice-to-text and translator screens to open the language picker.

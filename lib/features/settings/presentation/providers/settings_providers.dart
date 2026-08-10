@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:voxi_translate/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/core/providers/core_providers.dart';
 
 import '../../data/settings_local_datasource.dart';
 import '../../data/settings_repository_impl.dart';

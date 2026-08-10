@@ -1,9 +1,9 @@
 import 'package:flag/flag.dart';
 import 'package:flutter/material.dart';
 
-import 'package:voxi_translate/core/constants/supported_languages.dart';
-import 'package:voxi_translate/core/models/language.dart';
-import 'package:voxi_translate/core/widgets/empty_state.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 
 /// Searchable, single-select language list reused everywhere a language
 /// needs picking (speech language, translator source/target, default

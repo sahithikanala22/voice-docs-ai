@@ -27,6 +27,8 @@ final speechControllerProvider =
     NotifierProvider.family<SpeechController, RecognitionState, String>(SpeechController.new);
 
 class SpeechController extends FamilyNotifier<RecognitionState, String> {
+  bool _isStarting = false;
+
   @override
   RecognitionState build(String sessionTag) {
     // Capture the repository now rather than re-reading it inside
@@ -38,43 +40,55 @@ class SpeechController extends FamilyNotifier<RecognitionState, String> {
   }
 
   Future<void> startListening(String localeCode) async {
-    final micStatus = await Permission.microphone.request();
-    if (!micStatus.isGranted) {
+    // permission_handler throws PlatformException("A request for
+    // permissions is already running...") if a second request fires while
+    // one is in flight — guard re-entrancy here rather than trusting the UI
+    // (a fast double-tap, or two screens sharing a mic, can race the
+    // `state.isListening` flip that gates the caller).
+    if (_isStarting || state.isListening) return;
+    _isStarting = true;
+
+    try {
+      final micStatus = await Permission.microphone.request();
+      if (!micStatus.isGranted) {
+        state = state.copyWith(
+          errorMessage: 'Microphone permission is required to use voice input.',
+        );
+        return;
+      }
+
+      final repo = ref.read(speechRepositoryProvider);
+      final available = await repo.initialize();
+      if (!available) {
+        state = state.copyWith(
+          isAvailable: false,
+          errorMessage: 'Speech recognition is not available on this device.',
+        );
+        return;
+      }
+
       state = state.copyWith(
-        errorMessage: 'Microphone permission is required to use voice input.',
+        isListening: true,
+        isAvailable: true,
+        errorMessage: null,
+        transcript: '',
       );
-      return;
-    }
 
-    final repo = ref.read(speechRepositoryProvider);
-    final available = await repo.initialize();
-    if (!available) {
-      state = state.copyWith(
-        isAvailable: false,
-        errorMessage: 'Speech recognition is not available on this device.',
+      await repo.startListening(
+        localeCode: localeCode,
+        onResult: (transcript, isFinal) {
+          state = state.copyWith(transcript: transcript, isListening: !isFinal);
+        },
+        onSoundLevel: (level) {
+          state = state.copyWith(soundLevel: level);
+        },
+        onError: (message) {
+          state = state.copyWith(isListening: false, errorMessage: message);
+        },
       );
-      return;
+    } finally {
+      _isStarting = false;
     }
-
-    state = state.copyWith(
-      isListening: true,
-      isAvailable: true,
-      errorMessage: null,
-      transcript: '',
-    );
-
-    await repo.startListening(
-      localeCode: localeCode,
-      onResult: (transcript, isFinal) {
-        state = state.copyWith(transcript: transcript, isListening: !isFinal);
-      },
-      onSoundLevel: (level) {
-        state = state.copyWith(soundLevel: level);
-      },
-      onError: (message) {
-        state = state.copyWith(isListening: false, errorMessage: message);
-      },
-    );
   }
 
   Future<void> stopListening() async {

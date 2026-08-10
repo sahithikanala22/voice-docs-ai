@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Voxi Translate</string>
+	<string>Voice Docs AI</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>voxi_translate</string>
+	<string>Voice Docs AI</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Voxi Translate uses the microphone to transcribe and translate your speech.</string>
+	<string>Voice Docs AI uses the microphone to transcribe and translate your speech.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Voxi Translate uses speech recognition to convert what you say into text.</string>
+	<string>Voice Docs AI uses speech recognition to convert what you say into text.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

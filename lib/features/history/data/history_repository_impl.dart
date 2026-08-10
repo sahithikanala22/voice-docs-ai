@@ -1,4 +1,4 @@
-import 'package:voxi_translate/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
 
 import '../domain/history_repository.dart';
 import 'history_item.dart';

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:voxi_translate/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
 
 import '../domain/app_settings.dart';
 

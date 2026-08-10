@@ -1,6 +1,6 @@
 import 'package:translator/translator.dart';
 
-import 'package:voxi_translate/core/errors/exceptions.dart';
+import 'package:ai_voice_docs/core/errors/exceptions.dart';
 
 import '../../domain/translation_result.dart';
 import 'translation_provider.dart';

@@ -4,15 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:voxi_translate/core/constants/app_constants.dart';
-import 'package:voxi_translate/core/constants/supported_languages.dart';
-import 'package:voxi_translate/core/models/language.dart';
-import 'package:voxi_translate/core/widgets/app_snackbar.dart';
-import 'package:voxi_translate/core/widgets/language_selector_chip.dart';
-import 'package:voxi_translate/features/history/data/history_item.dart';
-import 'package:voxi_translate/features/history/presentation/providers/history_providers.dart';
-import 'package:voxi_translate/features/settings/presentation/providers/settings_providers.dart';
-import 'package:voxi_translate/features/text_to_speech/presentation/providers/tts_providers.dart';
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/core/widgets/language_selector_chip.dart';
+import 'package:ai_voice_docs/features/history/data/history_item.dart';
+import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
 
 import '../providers/speech_providers.dart';
 import '../widgets/animated_mic_button.dart';
@@ -83,7 +83,7 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
                   onClear: () => ref.read(speechControllerProvider('home').notifier).clearTranscript(),
                   onSpeak: () => ref.read(ttsControllerProvider.notifier).speak(
                         recognition.transcript,
-                        _language.code,
+                        _language.localeHint,
                       ),
                   onShare: () => Share.share(recognition.transcript),
                 ),
@@ -114,7 +114,7 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
     if (isListening) {
       await controller.stopListening();
     } else {
-      await controller.startListening(_language.code);
+      await controller.startListening(_language.localeHint);
     }
   }
 

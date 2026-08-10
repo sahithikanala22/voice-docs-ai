@@ -2,11 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:voxi_translate/core/providers/core_providers.dart';
-import 'package:voxi_translate/features/history/presentation/providers/history_providers.dart';
-import 'package:voxi_translate/features/translation/data/providers/translation_provider.dart';
-import 'package:voxi_translate/features/translation/domain/translation_result.dart';
-import 'package:voxi_translate/features/translation/presentation/providers/translation_providers.dart';
+import 'package:ai_voice_docs/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/features/translation/data/providers/translation_provider.dart';
+import 'package:ai_voice_docs/features/translation/domain/translation_result.dart';
+import 'package:ai_voice_docs/features/translation/presentation/providers/translation_providers.dart';
 
 class FakeTranslationProvider implements TranslationProvider {
   @override

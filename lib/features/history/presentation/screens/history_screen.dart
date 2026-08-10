@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
-import 'package:voxi_translate/core/constants/supported_languages.dart';
-import 'package:voxi_translate/core/widgets/app_snackbar.dart';
-import 'package:voxi_translate/core/widgets/empty_state.dart';
-import 'package:voxi_translate/features/text_to_speech/presentation/providers/tts_providers.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/core/widgets/empty_state.dart';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
 
 import '../../data/history_item.dart';
+import '../../data/history_pdf_generator.dart';
 import '../providers/history_providers.dart';
 import '../widgets/history_tile.dart';
 
@@ -144,21 +146,42 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 Text(item.translatedText ?? '', style: Theme.of(context).textTheme.titleMedium),
               ],
               const SizedBox(height: 20),
-              Align(
-                alignment: Alignment.centerRight,
-                child: FilledButton.icon(
-                  onPressed: () => ref.read(ttsControllerProvider.notifier).speak(
-                        isTranslation ? (item.translatedText ?? '') : item.sourceText,
-                        isTranslation ? item.targetLanguageCode! : item.sourceLanguageCode,
-                      ),
-                  icon: const Icon(Icons.volume_up_rounded),
-                  label: const Text('Play'),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _exportAndShare(context, item),
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: const Text('Share PDF'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: () => ref.read(ttsControllerProvider.notifier).speak(
+                          isTranslation ? (item.translatedText ?? '') : item.sourceText,
+                          languageByCode(isTranslation ? item.targetLanguageCode! : item.sourceLanguageCode)
+                              .localeHint,
+                        ),
+                    icon: const Icon(Icons.volume_up_rounded),
+                    label: const Text('Play'),
+                  ),
+                ],
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  Future<void> _exportAndShare(BuildContext context, HistoryItem item) async {
+    try {
+      final file = await HistoryPdfGenerator().generate(item);
+      if (!context.mounted) return;
+      await Share.shareXFiles([XFile(file.path)], text: 'Shared from Voice Docs AI');
+    } catch (_) {
+      if (context.mounted) {
+        AppSnackbar.show(context, 'Could not create the PDF.', isError: true);
+      }
+    }
   }
 }

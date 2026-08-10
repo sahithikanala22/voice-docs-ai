@@ -1,4 +1,4 @@
-name: voxi_translate
+name: ai_voice_docs
 description: "Voxi Translate — real-time speech-to-text, translation and text-to-speech."
 publish_to: 'none'
 
@@ -41,7 +41,10 @@ dependencies:
   # UI
   flag: ^7.0.0
   intl: ^0.20.2
-
+  pdf: ^3.13.0
+  path_provider: ^2.1.6
+  firebase_core: ^4.13.0
+  firebase_auth: ^6.5.7
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -50,6 +53,18 @@ dev_dependencies:
   build_runner: ^2.4.13
   freezed: ^2.5.7
   json_serializable: ^6.9.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/icon.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/icon.png

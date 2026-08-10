@@ -1,4 +1,4 @@
-package com.voxi.translate.voxi_translate
+package com.aivoicedocs.app
 
 import io.flutter.embedding.android.FlutterActivity
 

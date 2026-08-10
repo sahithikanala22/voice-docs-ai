@@ -1,0 +1,9 @@
+{
+  "name": "voice-docs-ai-otp-server",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "twilio": "^5.4.0"
+  }
+}

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:voxi_translate/core/constants/app_constants.dart';
-import 'package:voxi_translate/core/constants/supported_languages.dart';
-import 'package:voxi_translate/core/models/language.dart';
-import 'package:voxi_translate/core/widgets/app_snackbar.dart';
-import 'package:voxi_translate/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/features/auth/presentation/providers/auth_providers.dart';
+import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 
 import '../providers/settings_providers.dart';
 import '../widgets/settings_section.dart';
@@ -26,9 +27,26 @@ class SettingsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Could not load settings: $err')),
         data: (settings) {
+          final currentUser = ref.watch(authStateChangesProvider).value;
+
           return ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
+              SettingsSection(
+                title: 'Account',
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.person_outline_rounded),
+                    title: Text(currentUser?.phoneNumber ?? 'Signed in'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: Icon(Icons.logout_rounded, color: Theme.of(context).colorScheme.error),
+                    title: Text('Sign out', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                    onTap: () => _confirmSignOut(context, ref),
+                  ),
+                ],
+              ),
               SettingsSection(
                 title: 'Appearance',
                 children: [
@@ -132,6 +150,25 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (picked != null) {
       await onPicked(picked.code);
+    }
+  }
+
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('You can sign back in any time with the same email and password.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sign out')),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(authControllerProvider.notifier).signOut();
+      // The router's redirect callback moves to /login automatically once
+      // authStateChangesProvider emits null.
     }
   }
 

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:voxi_translate/features/history/data/history_item.dart';
-import 'package:voxi_translate/features/history/data/history_local_datasource.dart';
-import 'package:voxi_translate/features/history/data/history_repository_impl.dart';
+import 'package:ai_voice_docs/features/history/data/history_item.dart';
+import 'package:ai_voice_docs/features/history/data/history_local_datasource.dart';
+import 'package:ai_voice_docs/features/history/data/history_repository_impl.dart';
 
 void main() {
   late HistoryRepositoryImpl repository;

@@ -3,12 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:voxi_translate/core/constants/supported_languages.dart';
-import 'package:voxi_translate/core/models/language.dart';
-import 'package:voxi_translate/core/widgets/app_snackbar.dart';
-import 'package:voxi_translate/features/settings/presentation/providers/settings_providers.dart';
-import 'package:voxi_translate/features/speech_to_text/presentation/providers/speech_providers.dart';
-import 'package:voxi_translate/features/text_to_speech/presentation/providers/tts_providers.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
 
 import '../providers/translation_providers.dart';
 import '../widgets/chat_bubble.dart';
@@ -76,7 +76,9 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
           next.translatedText != previous?.translatedText &&
           next.translatedText != _lastAutoPlayedText) {
         _lastAutoPlayedText = next.translatedText;
-        ref.read(ttsControllerProvider.notifier).speak(next.translatedText, next.targetLanguageCode);
+        ref
+            .read(ttsControllerProvider.notifier)
+            .speak(next.translatedText, languageByCode(next.targetLanguageCode).localeHint);
       }
     });
 
@@ -122,7 +124,7 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
                           hintText: recognition.isListening ? 'Listening…' : 'Type or speak to translate',
                           suffixIcon: IconButton(
                             icon: Icon(recognition.isListening ? Icons.stop_circle_rounded : Icons.mic_rounded),
-                            onPressed: () => _toggleListening(recognition.isListening, sourceLang.code),
+                            onPressed: () => _toggleListening(recognition.isListening, sourceLang.localeHint),
                           ),
                         ),
                       ),
@@ -140,7 +142,7 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
                             ? null
                             : () => ref
                                 .read(ttsControllerProvider.notifier)
-                                .speak(state.translatedText, state.targetLanguageCode),
+                                .speak(state.translatedText, targetLang.localeHint),
                         onCopy: state.translatedText.isEmpty ? null : () => _copy(state.translatedText),
                       ),
                     ],

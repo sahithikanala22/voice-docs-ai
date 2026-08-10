@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-import 'package:voxi_translate/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
 
 part 'translation_state.freezed.dart';
 

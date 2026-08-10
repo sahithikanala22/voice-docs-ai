@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:voxi_translate/core/models/language.dart';
-import 'package:voxi_translate/core/widgets/language_selector_chip.dart';
+import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/widgets/language_selector_chip.dart';
 
 /// Source ⇄ target language row with a swap button between them, matching
 /// the reference app's language-pair control above the translation bubbles.
