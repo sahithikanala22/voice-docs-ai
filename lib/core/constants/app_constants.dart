@@ -12,11 +12,6 @@ class AppConstants {
 
   static const String defaultSourceLanguageCode = 'en';
   static const String defaultTargetLanguageCode = 'es';
-
-  /// Base URL of the Vercel-hosted OTP backend (see `server/`), exposing
-  /// `/api/sendOtp` and `/api/verifyOtp`. Replace with the real deployment
-  /// URL from the Vercel dashboard once it's live — no trailing slash.
-  static const String otpApiBaseUrl = 'https://REPLACE_WITH_YOUR_VERCEL_DEPLOYMENT.vercel.app';
 }
 
 /// SharedPreferences keys, centralized so a typo can't silently create a

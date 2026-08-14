@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
-import 'package:ai_voice_docs/core/utils/time_ago.dart';
 
 import '../../data/history_item.dart';
 
 /// Swipe-to-delete row for one history entry — a voice transcript or a
 /// translation pair, distinguished by a leading type icon.
 class HistoryTile extends StatelessWidget {
-  const HistoryTile({super.key, required this.item, required this.onTap, required this.onDelete});
+  const HistoryTile({
+    super.key,
+    required this.item,
+    required this.onTap,
+    required this.onDelete,
+    required this.onShare,
+  });
 
   final HistoryItem item;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onShare;
 
   bool get _isTranslation => item.type == HistoryItemType.translation;
 
@@ -38,7 +45,7 @@ class HistoryTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         child: ListTile(
           onTap: onTap,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          contentPadding: const EdgeInsets.only(left: 16, right: 4, top: 4, bottom: 4),
           leading: CircleAvatar(
             backgroundColor: scheme.primaryContainer,
             child: Icon(
@@ -60,9 +67,19 @@ class HistoryTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: Text(
-            timeAgo(item.timestamp),
-            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                DateFormat('MMM d, h:mm a').format(item.timestamp),
+                style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+              ),
+              IconButton(
+                icon: const Icon(Icons.share_outlined, size: 20),
+                tooltip: 'Share',
+                onPressed: onShare,
+              ),
+            ],
           ),
         ),
       ),

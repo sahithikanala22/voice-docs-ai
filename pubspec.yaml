@@ -43,8 +43,7 @@ dependencies:
   intl: ^0.20.2
   pdf: ^3.13.0
   path_provider: ^2.1.6
-  firebase_core: ^4.13.0
-  firebase_auth: ^6.5.7
+  archive: ^4.0.9
 dev_dependencies:
   flutter_test:
     sdk: flutter

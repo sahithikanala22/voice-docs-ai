@@ -1,11 +1,11 @@
 import 'dart:io';
 
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
-import 'package:ai_voice_docs/core/utils/time_ago.dart';
 
 import 'history_item.dart';
 
@@ -29,15 +29,27 @@ class HistoryPdfGenerator {
             children: [
               pw.Text(
                 isTranslation ? 'Translation' : 'Voice Transcript',
-                style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 20,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
               pw.SizedBox(height: 4),
               pw.Text(
-                timeAgo(item.timestamp),
-                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
+                DateFormat('MMM d, yyyy · h:mm a').format(item.timestamp),
+                style: const pw.TextStyle(
+                  fontSize: 10,
+                  color: PdfColors.grey600,
+                ),
               ),
               pw.SizedBox(height: 24),
-              pw.Text(sourceLang.name, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                sourceLang.name,
+                style: pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 6),
               pw.Text(item.sourceText, style: const pw.TextStyle(fontSize: 14)),
               if (isTranslation) ...[
@@ -46,10 +58,16 @@ class HistoryPdfGenerator {
                 pw.SizedBox(height: 12),
                 pw.Text(
                   languageByCode(item.targetLanguageCode!).name,
-                  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                    fontSize: 12,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
                 ),
                 pw.SizedBox(height: 6),
-                pw.Text(item.translatedText ?? '', style: const pw.TextStyle(fontSize: 14)),
+                pw.Text(
+                  item.translatedText ?? '',
+                  style: const pw.TextStyle(fontSize: 14),
+                ),
               ],
             ],
           );

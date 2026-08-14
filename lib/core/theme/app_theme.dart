@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
 
-/// Material 3 theming for Voxi Translate.
+/// Material 3 theming for Voice Docs AI.
 ///
-/// Both themes are seeded from the same brand teal so light/dark stay
-/// visually related, per Material 3's dynamic color guidance, rather than
-/// hand-picking a separate flat palette per mode.
+/// Both themes are seeded from the same brand indigo — sampled from the
+/// app's mic+document logomark — so light/dark stay visually related, per
+/// Material 3's dynamic color guidance, rather than hand-picking a separate
+/// flat palette per mode.
 class AppTheme {
   const AppTheme._();
 
-  static const Color _seed = Color(0xFF0E7C86);
+  static const Color _seed = Color(0xFF5B67F1);
+
+  /// The logo's radiating sound-wave burst, cyan through orange — used for
+  /// decorative accents (e.g. the mic button's pulse rings) that should echo
+  /// the icon directly rather than derive from the single Material seed.
+  static const List<Color> brandRays = [
+    Color(0xFF3EC6F0),
+    Color(0xFF6B8CF5),
+    Color(0xFF9B6FE8),
+    Color(0xFFE85B9B),
+    Color(0xFFF0A860),
+  ];
 
   static ThemeData light() => _base(
         ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.light),

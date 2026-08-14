@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
@@ -9,6 +12,7 @@ import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts
 
 import '../../data/history_item.dart';
 import '../../data/history_pdf_generator.dart';
+import '../../data/history_word_generator.dart';
 import '../providers/history_providers.dart';
 import '../widgets/history_tile.dart';
 
@@ -91,6 +95,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             ref.read(historyControllerProvider.notifier).removeEntry(item.id);
                             AppSnackbar.show(context, 'Removed from history');
                           },
+                          onShare: () => Share.share(_plainTextFor(item)),
                         );
                       },
                     );
@@ -134,6 +139,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                DateFormat('MMM d, yyyy · h:mm a').format(item.timestamp),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 12),
               Text(languageByCode(item.sourceLanguageCode).name,
                   style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(height: 6),
@@ -146,15 +159,29 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 Text(item.translatedText ?? '', style: Theme.of(context).textTheme.titleMedium),
               ],
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () => _exportAndShare(context, item),
+                    onPressed: () => _shareGeneratedFile(
+                      context,
+                      () => HistoryPdfGenerator().generate(item),
+                      'Could not create the PDF.',
+                    ),
                     icon: const Icon(Icons.picture_as_pdf_outlined),
                     label: const Text('Share PDF'),
                   ),
-                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _shareGeneratedFile(
+                      context,
+                      () => HistoryWordGenerator().generate(item),
+                      'Could not create the Word document.',
+                    ),
+                    icon: const Icon(Icons.description_outlined),
+                    label: const Text('Share Word'),
+                  ),
                   FilledButton.icon(
                     onPressed: () => ref.read(ttsControllerProvider.notifier).speak(
                           isTranslation ? (item.translatedText ?? '') : item.sourceText,
@@ -173,14 +200,25 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  Future<void> _exportAndShare(BuildContext context, HistoryItem item) async {
+  String _plainTextFor(HistoryItem item) {
+    if (item.type == HistoryItemType.translation) {
+      return '${item.sourceText}\n\n${item.translatedText ?? ''}';
+    }
+    return item.sourceText;
+  }
+
+  Future<void> _shareGeneratedFile(
+    BuildContext context,
+    Future<File> Function() generate,
+    String failureMessage,
+  ) async {
     try {
-      final file = await HistoryPdfGenerator().generate(item);
+      final file = await generate();
       if (!context.mounted) return;
       await Share.shareXFiles([XFile(file.path)], text: 'Shared from Voice Docs AI');
     } catch (_) {
       if (context.mounted) {
-        AppSnackbar.show(context, 'Could not create the PDF.', isError: true);
+        AppSnackbar.show(context, failureMessage, isError: true);
       }
     }
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:ai_voice_docs/core/theme/app_theme.dart';
+
 import 'sound_wave_painter.dart';
 
 /// Large, tap-to-toggle mic button with an ambient pulse when idle and a
@@ -58,7 +60,7 @@ class _AnimatedMicButtonState extends State<AnimatedMicButton>
             child: CustomPaint(
               painter: SoundWavePainter(
                 level: _normalizedLevel,
-                color: scheme.primary,
+                colors: AppTheme.brandRays,
                 animationValue: _controller.value,
               ),
               child: child,
