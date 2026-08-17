@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:ai_voice_docs/core/theme/app_theme.dart';
+
 /// Centered icon + title + subtitle, used whenever a list has nothing to
 /// show yet (empty history, no search results, etc).
 ///
@@ -36,10 +38,15 @@ class EmptyState extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: scheme.surfaceContainerHigh,
+                        gradient: RadialGradient(
+                          colors: [scheme.primary.withValues(alpha: 0.18), scheme.surfaceContainerHigh],
+                        ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(icon, size: 36, color: scheme.onSurfaceVariant),
+                      child: ShaderMask(
+                        shaderCallback: (bounds) => AppTheme.heroGradient(scheme).createShader(bounds),
+                        child: Icon(icon, size: 36, color: Colors.white),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(

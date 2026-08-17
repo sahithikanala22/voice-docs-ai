@@ -8,7 +8,11 @@ import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/core/widgets/folder_selector_chip.dart';
+import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/core/widgets/language_selector_chip.dart';
+import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
+import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_picker_sheet.dart';
 import 'package:ai_voice_docs/features/history/data/history_item.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
@@ -40,6 +44,9 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
     });
 
     final recognition = ref.watch(speechControllerProvider('home'));
+    final foldersAsync = ref.watch(folderControllerProvider);
+    final currentFolderId = settingsAsync.value?.currentFolderId;
+    final currentFolderName = folderNameFor(foldersAsync.value, currentFolderId);
 
     ref.listen(speechControllerProvider('home'), (previous, next) {
       if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
@@ -51,6 +58,7 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
               HistoryItem.voice(
                 text: next.transcript,
                 languageCode: _language.code,
+                folderId: currentFolderId,
               ),
             );
       }
@@ -70,12 +78,21 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
             ),
           ),
         ],
+        bottom: const GradientAppBarUnderline(),
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FolderSelectorChip(
+                  folderName: currentFolderName,
+                  onTap: () => _pickFolder(context, currentFolderId),
+                ),
+              ),
+              const SizedBox(height: 12),
               Expanded(
                 child: TranscriptCard(
                   transcript: recognition.transcript,
@@ -131,5 +148,11 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
     if (picked != null) {
       setState(() => _language = picked);
     }
+  }
+
+  Future<void> _pickFolder(BuildContext context, String? currentFolderId) async {
+    final result = await showFolderPicker(context, selectedFolderId: currentFolderId);
+    if (result == null) return;
+    await ref.read(settingsControllerProvider.notifier).setCurrentFolderId(result.isEmpty ? null : result);
   }
 }

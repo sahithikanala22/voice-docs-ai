@@ -83,9 +83,16 @@ class _AnimatedMicButtonState extends State<AnimatedMicButton>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.35),
-                  blurRadius: 24,
-                  spreadRadius: widget.isListening ? 6 : 2,
+                  color: AppTheme.brandRays[1].withValues(alpha: 0.4),
+                  blurRadius: 28,
+                  spreadRadius: widget.isListening ? 8 : 2,
+                  offset: const Offset(-4, -2),
+                ),
+                BoxShadow(
+                  color: AppTheme.brandRays[3].withValues(alpha: 0.35),
+                  blurRadius: 28,
+                  spreadRadius: widget.isListening ? 8 : 2,
+                  offset: const Offset(4, 2),
                 ),
               ],
             ),

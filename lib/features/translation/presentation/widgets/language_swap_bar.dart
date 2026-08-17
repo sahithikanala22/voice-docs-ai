@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/theme/app_theme.dart';
 import 'package:ai_voice_docs/core/widgets/language_selector_chip.dart';
 
 /// Source ⇄ target language row with a swap button between them, matching
@@ -27,10 +28,22 @@ class LanguageSwapBar extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: LanguageSelectorChip(language: source, onTap: onTapSource)),
-        IconButton.filledTonal(
-          onPressed: onSwap,
-          icon: const Icon(Icons.swap_horiz_rounded),
-          style: IconButton.styleFrom(backgroundColor: scheme.surfaceContainerHigh),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: AppTheme.heroGradient(scheme),
+              boxShadow: [
+                BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4)),
+              ],
+            ),
+            child: IconButton(
+              onPressed: onSwap,
+              icon: const Icon(Icons.swap_horiz_rounded),
+              color: scheme.onPrimary,
+            ),
+          ),
         ),
         Expanded(child: LanguageSelectorChip(language: target, onTap: onTapTarget)),
       ],

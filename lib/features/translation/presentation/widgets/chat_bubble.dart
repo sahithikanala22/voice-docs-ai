@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:ai_voice_docs/core/theme/app_theme.dart';
+
 /// One side of a translation exchange, styled like a modern chat bubble.
-/// [filled] renders the primary-color bubble used for the translated
-/// (target) text; the source side uses an outlined bubble instead.
+/// [filled] renders the gradient bubble used for the translated (target)
+/// text; the source side uses an outlined bubble instead.
 class ChatBubble extends StatelessWidget {
   const ChatBubble({
     super.key,
@@ -22,20 +24,23 @@ class ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final bg = filled ? scheme.primary : scheme.surfaceContainerHigh;
     final fg = filled ? scheme.onPrimary : scheme.onSurface;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: bg,
+        color: filled ? null : scheme.surfaceContainerHigh,
+        gradient: filled ? AppTheme.heroGradient(scheme) : null,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(22),
           topRight: const Radius.circular(22),
           bottomLeft: Radius.circular(filled ? 22 : 6),
           bottomRight: Radius.circular(filled ? 6 : 22),
         ),
+        boxShadow: filled
+            ? [BoxShadow(color: scheme.primary.withValues(alpha: 0.35), blurRadius: 20, offset: const Offset(0, 8))]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -14,6 +14,10 @@ class AppSettings with _$AppSettings {
     @Default(AppConstants.defaultTargetLanguageCode) String targetLanguageCode,
     @Default(true) bool autoPlayTranslationTts,
     @Default(true) bool hapticFeedback,
+    /// The folder new voice/translation entries currently save into, chosen
+    /// via the folder selector on the Voice/Translate screens. Null means
+    /// unfiled.
+    String? currentFolderId,
   }) = _AppSettings;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => _$AppSettingsFromJson(json);

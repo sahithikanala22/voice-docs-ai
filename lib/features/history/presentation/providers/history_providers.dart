@@ -38,4 +38,9 @@ class HistoryController extends AsyncNotifier<List<HistoryItem>> {
     await ref.read(historyRepositoryProvider).clear();
     state = const AsyncData([]);
   }
+
+  Future<void> moveToFolder(String id, String? folderId) async {
+    await ref.read(historyRepositoryProvider).updateFolder(id, folderId);
+    state = AsyncData(await ref.read(historyRepositoryProvider).getAll());
+  }
 }

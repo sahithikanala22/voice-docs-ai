@@ -51,12 +51,22 @@ class TranscriptCard extends StatelessWidget {
             ),
             const Divider(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _ActionIcon(icon: Icons.copy_rounded, label: 'Copy', onTap: _hasContent ? onCopy : null),
-                _ActionIcon(icon: Icons.close_rounded, label: 'Clear', onTap: _hasContent ? onClear : null),
-                _ActionIcon(icon: Icons.volume_up_rounded, label: 'Speak', onTap: _hasContent ? onSpeak : null),
-                _ActionIcon(icon: Icons.share_rounded, label: 'Share', onTap: _hasContent ? onShare : null),
+                Expanded(
+                  child: _ActionIcon(icon: Icons.copy_rounded, label: 'Copy', onTap: _hasContent ? onCopy : null),
+                ),
+                Expanded(
+                  child:
+                      _ActionIcon(icon: Icons.close_rounded, label: 'Clear', onTap: _hasContent ? onClear : null),
+                ),
+                Expanded(
+                  child: _ActionIcon(
+                      icon: Icons.volume_up_rounded, label: 'Speak', onTap: _hasContent ? onSpeak : null),
+                ),
+                Expanded(
+                  child:
+                      _ActionIcon(icon: Icons.share_rounded, label: 'Share', onTap: _hasContent ? onShare : null),
+                ),
               ],
             ),
           ],

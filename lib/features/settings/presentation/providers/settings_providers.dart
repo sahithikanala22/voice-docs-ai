@@ -42,4 +42,7 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update((s) => s.copyWith(autoPlayTranslationTts: value));
 
   Future<void> setHapticFeedback(bool value) => _update((s) => s.copyWith(hapticFeedback: value));
+
+  Future<void> setCurrentFolderId(String? folderId) =>
+      _update((s) => s.copyWith(currentFolderId: folderId));
 }

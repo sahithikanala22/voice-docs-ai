@@ -6,6 +6,7 @@ import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/errors/exceptions.dart';
 import 'package:ai_voice_docs/features/history/data/history_item.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 
 import '../../data/providers/free_google_translation_provider.dart';
 import '../../data/providers/translation_provider.dart';
@@ -89,6 +90,7 @@ class TranslationController extends Notifier<TranslationState> {
               translatedText: result.translatedText,
               sourceLanguageCode: state.sourceLanguageCode,
               targetLanguageCode: state.targetLanguageCode,
+              folderId: ref.read(settingsControllerProvider).value?.currentFolderId,
             ),
           );
     } on TranslationException catch (e) {

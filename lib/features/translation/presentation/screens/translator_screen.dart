@@ -6,6 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/core/widgets/folder_selector_chip.dart';
+import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
+import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
+import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_picker_sheet.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
 import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
@@ -48,6 +52,9 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
 
     final state = ref.watch(translationControllerProvider);
     final recognition = ref.watch(speechControllerProvider('translator'));
+    final foldersAsync = ref.watch(folderControllerProvider);
+    final currentFolderId = settingsAsync.value?.currentFolderId;
+    final currentFolderName = folderNameFor(foldersAsync.value, currentFolderId);
 
     if (_sourceController.text != state.sourceText && !recognition.isListening) {
       _sourceController.value = _sourceController.value.copyWith(
@@ -87,7 +94,7 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
     final controller = ref.read(translationControllerProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Translator')),
+      appBar: AppBar(title: const Text('Translator'), bottom: const GradientAppBarUnderline()),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -109,6 +116,14 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
                   onPicked: controller.setTargetLanguage,
                 ),
                 onSwap: controller.swapLanguages,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FolderSelectorChip(
+                  folderName: currentFolderName,
+                  onTap: () => _pickFolder(context, currentFolderId),
+                ),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -193,5 +208,11 @@ class _TranslatorScreenState extends ConsumerState<TranslatorScreen> {
       extra: {'title': title, 'selectedCode': selectedCode},
     );
     if (picked != null) onPicked(picked.code);
+  }
+
+  Future<void> _pickFolder(BuildContext context, String? currentFolderId) async {
+    final result = await showFolderPicker(context, selectedFolderId: currentFolderId);
+    if (result == null) return;
+    await ref.read(settingsControllerProvider.notifier).setCurrentFolderId(result.isEmpty ? null : result);
   }
 }

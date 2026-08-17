@@ -22,6 +22,27 @@ class AppTheme {
     Color(0xFFF0A860),
   ];
 
+  /// Two-stop gradient (primary → tertiary) for hero surfaces that need to
+  /// stay readable with text on top — the translated chat bubble, gradient
+  /// buttons, etc. Bolder than a flat fill, calmer than the full rainbow.
+  static LinearGradient heroGradient(
+    ColorScheme scheme, {
+    Alignment begin = Alignment.topLeft,
+    Alignment end = Alignment.bottomRight,
+  }) {
+    return LinearGradient(begin: begin, end: end, colors: [scheme.primary, scheme.tertiary]);
+  }
+
+  /// The full logo palette as a gradient, for smaller decorative accents
+  /// (avatars, underlines) where a rainbow sweep reads as branding rather
+  /// than fighting with foreground text.
+  static LinearGradient rainbowGradient({
+    Alignment begin = Alignment.centerLeft,
+    Alignment end = Alignment.centerRight,
+  }) {
+    return LinearGradient(begin: begin, end: end, colors: brandRays);
+  }
+
   static ThemeData light() => _base(
         ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.light),
       );
@@ -50,7 +71,9 @@ class AppTheme {
       ),
       textTheme: _textTheme(scheme),
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 3,
+        shadowColor: scheme.primary.withValues(alpha: 0.25),
+        surfaceTintColor: Colors.transparent,
         color: scheme.surfaceContainerHigh,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         clipBehavior: Clip.antiAlias,
@@ -88,11 +111,22 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surfaceContainer,
-        indicatorColor: scheme.primaryContainer,
-        elevation: 0,
+        indicatorColor: scheme.primary,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: scheme.primary.withValues(alpha: 0.3),
+        elevation: 8,
         height: 68,
-        labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: scheme.onSurface),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected) ? scheme.onPrimary : scheme.onSurfaceVariant,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: states.contains(WidgetState.selected) ? scheme.primary : scheme.onSurface,
+          ),
         ),
       ),
       listTileTheme: ListTileThemeData(

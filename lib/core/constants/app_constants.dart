@@ -21,4 +21,5 @@ class PrefsKeys {
 
   static const String history = 'voxi.history.v1';
   static const String settings = 'voxi.settings.v1';
+  static const String folders = 'voxi.folders.v1';
 }

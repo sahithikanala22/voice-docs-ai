@@ -6,6 +6,7 @@ import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
+import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 
 import '../providers/settings_providers.dart';
@@ -21,7 +22,7 @@ class SettingsScreen extends ConsumerWidget {
     final controller = ref.read(settingsControllerProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: const Text('Settings'), bottom: const GradientAppBarUnderline()),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(child: Text('Could not load settings: $err')),

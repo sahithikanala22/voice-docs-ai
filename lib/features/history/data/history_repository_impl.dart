@@ -29,4 +29,13 @@ class HistoryRepositoryImpl implements HistoryRepository {
 
   @override
   Future<void> clear() async => _dataSource.writeAll([]);
+
+  @override
+  Future<void> updateFolder(String id, String? folderId) async {
+    final items = _dataSource.readAll();
+    final index = items.indexWhere((e) => e.id == id);
+    if (index == -1) return;
+    items[index] = items[index].copyWith(folderId: folderId);
+    await _dataSource.writeAll(items);
+  }
 }

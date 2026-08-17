@@ -8,4 +8,6 @@ abstract class HistoryRepository {
   Future<void> remove(String id);
 
   Future<void> clear();
+
+  Future<void> updateFolder(String id, String? folderId);
 }

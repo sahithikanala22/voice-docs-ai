@@ -24,17 +24,22 @@ class HistoryItem with _$HistoryItem {
     required String sourceLanguageCode,
     String? targetLanguageCode,
     required DateTime timestamp,
+    /// Which [Folder] this entry is filed under, if any — null means
+    /// unfiled. Purely organizational, set from whatever folder was
+    /// "current" at save time (see `AppSettings.currentFolderId`).
+    String? folderId,
   }) = _HistoryItem;
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) => _$HistoryItemFromJson(json);
 
-  factory HistoryItem.voice({required String text, required String languageCode}) {
+  factory HistoryItem.voice({required String text, required String languageCode, String? folderId}) {
     return HistoryItem(
       id: _nextId(),
       type: HistoryItemType.voice,
       sourceText: text,
       sourceLanguageCode: languageCode,
       timestamp: DateTime.now(),
+      folderId: folderId,
     );
   }
 
@@ -43,6 +48,7 @@ class HistoryItem with _$HistoryItem {
     required String translatedText,
     required String sourceLanguageCode,
     required String targetLanguageCode,
+    String? folderId,
   }) {
     return HistoryItem(
       id: _nextId(),
@@ -52,6 +58,7 @@ class HistoryItem with _$HistoryItem {
       sourceLanguageCode: sourceLanguageCode,
       targetLanguageCode: targetLanguageCode,
       timestamp: DateTime.now(),
+      folderId: folderId,
     );
   }
 }
