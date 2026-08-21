@@ -38,4 +38,13 @@ class HistoryRepositoryImpl implements HistoryRepository {
     items[index] = items[index].copyWith(folderId: folderId);
     await _dataSource.writeAll(items);
   }
+
+  @override
+  Future<void> updateReminder(String id, DateTime? reminderAt) async {
+    final items = _dataSource.readAll();
+    final index = items.indexWhere((e) => e.id == id);
+    if (index == -1) return;
+    items[index] = items[index].copyWith(reminderAt: reminderAt);
+    await _dataSource.writeAll(items);
+  }
 }

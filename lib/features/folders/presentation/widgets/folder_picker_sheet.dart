@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:ai_voice_docs/core/theme/app_theme.dart';
+
 import '../../data/folder.dart';
 import '../providers/folder_providers.dart';
 
@@ -19,6 +21,44 @@ Future<String?> showFolderPicker(BuildContext context, {required String? selecte
   );
 }
 
+/// Row of tappable color swatches from [AppTheme.folderPalette], with a
+/// check mark on whichever [selectedIndex] is current. Shared by the
+/// "new folder" row and the rename dialog so both offer the same colors.
+class _ColorSwatchRow extends StatelessWidget {
+  const _ColorSwatchRow({required this.selectedIndex, required this.onChanged});
+
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (var i = 0; i < AppTheme.folderPalette.length; i++)
+          GestureDetector(
+            onTap: () => onChanged(i),
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.folderPalette[i],
+                border: i == selectedIndex
+                    ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2.5)
+                    : null,
+              ),
+              child: i == selectedIndex
+                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                  : null,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _FolderPickerSheet extends ConsumerStatefulWidget {
   const _FolderPickerSheet({required this.selectedFolderId});
 
@@ -30,6 +70,7 @@ class _FolderPickerSheet extends ConsumerStatefulWidget {
 
 class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
   final _newFolderController = TextEditingController();
+  int _newFolderColorIndex = 0;
 
   @override
   void dispose() {
@@ -82,10 +123,16 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
                           secondary: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              CircleAvatar(
+                                radius: 8,
+                                backgroundColor:
+                                    AppTheme.folderPalette[folder.colorIndex % AppTheme.folderPalette.length],
+                              ),
+                              const SizedBox(width: 8),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 20),
                                 tooltip: 'Rename',
-                                onPressed: () => _renameFolder(folder),
+                                onPressed: () => _editFolder(folder),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline_rounded, size: 20),
@@ -102,12 +149,19 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
             ),
           ),
           const Divider(height: 32),
+          Text('New folder', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 10),
+          _ColorSwatchRow(
+            selectedIndex: _newFolderColorIndex,
+            onChanged: (index) => setState(() => _newFolderColorIndex = index),
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _newFolderController,
-                  decoration: const InputDecoration(hintText: 'New folder name, e.g. Diary'),
+                  decoration: const InputDecoration(hintText: 'Folder name, e.g. Diary'),
                   onSubmitted: (_) => _createFolder(),
                 ),
               ),
@@ -123,28 +177,47 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
   Future<void> _createFolder() async {
     final name = _newFolderController.text.trim();
     if (name.isEmpty) return;
-    final folder = await ref.read(folderControllerProvider.notifier).addFolder(name);
+    final folder = await ref
+        .read(folderControllerProvider.notifier)
+        .addFolder(name, colorIndex: _newFolderColorIndex);
     if (mounted) Navigator.pop(context, folder.id);
   }
 
-  Future<void> _renameFolder(Folder folder) async {
-    final controller = TextEditingController(text: folder.name);
-    final newName = await showDialog<String>(
+  Future<void> _editFolder(Folder folder) async {
+    final nameController = TextEditingController(text: folder.name);
+    var colorIndex = folder.colorIndex;
+
+    final saved = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rename folder'),
-        content: TextField(controller: controller, autofocus: true),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Save'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Edit folder'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(controller: nameController, autofocus: true),
+              const SizedBox(height: 16),
+              _ColorSwatchRow(
+                selectedIndex: colorIndex,
+                onChanged: (index) => setDialogState(() => colorIndex = index),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+          ],
+        ),
       ),
     );
-    if (newName != null && newName.isNotEmpty) {
-      await ref.read(folderControllerProvider.notifier).renameFolder(folder.id, newName);
+
+    if (saved == true && nameController.text.trim().isNotEmpty) {
+      await ref.read(folderControllerProvider.notifier).updateFolder(
+            folder.id,
+            name: nameController.text.trim(),
+            colorIndex: colorIndex,
+          );
     }
   }
 

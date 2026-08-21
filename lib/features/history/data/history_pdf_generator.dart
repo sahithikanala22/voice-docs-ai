@@ -15,7 +15,6 @@ import 'history_item.dart';
 /// small and this only runs on an explicit user tap.
 class HistoryPdfGenerator {
   Future<File> generate(HistoryItem item) async {
-    final isTranslation = item.type == HistoryItemType.translation;
     final sourceLang = languageByCode(item.sourceLanguageCode);
 
     final doc = pw.Document();
@@ -28,7 +27,7 @@ class HistoryPdfGenerator {
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
               pw.Text(
-                isTranslation ? 'Translation' : 'Voice Transcript',
+                'Voice Transcript',
                 style: pw.TextStyle(
                   fontSize: 20,
                   fontWeight: pw.FontWeight.bold,
@@ -52,23 +51,6 @@ class HistoryPdfGenerator {
               ),
               pw.SizedBox(height: 6),
               pw.Text(item.sourceText, style: const pw.TextStyle(fontSize: 14)),
-              if (isTranslation) ...[
-                pw.SizedBox(height: 20),
-                pw.Divider(),
-                pw.SizedBox(height: 12),
-                pw.Text(
-                  languageByCode(item.targetLanguageCode!).name,
-                  style: pw.TextStyle(
-                    fontSize: 12,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 6),
-                pw.Text(
-                  item.translatedText ?? '',
-                  style: const pw.TextStyle(fontSize: 14),
-                ),
-              ],
             ],
           );
         },

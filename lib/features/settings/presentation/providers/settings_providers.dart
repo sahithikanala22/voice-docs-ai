@@ -36,11 +36,6 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setSourceLanguage(String code) => _update((s) => s.copyWith(sourceLanguageCode: code));
 
-  Future<void> setTargetLanguage(String code) => _update((s) => s.copyWith(targetLanguageCode: code));
-
-  Future<void> setAutoPlayTranslationTts(bool value) =>
-      _update((s) => s.copyWith(autoPlayTranslationTts: value));
-
   Future<void> setHapticFeedback(bool value) => _update((s) => s.copyWith(hapticFeedback: value));
 
   Future<void> setCurrentFolderId(String? folderId) =>

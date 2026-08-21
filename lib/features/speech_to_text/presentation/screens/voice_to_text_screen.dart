@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
@@ -15,6 +14,9 @@ import 'package:ai_voice_docs/features/folders/presentation/providers/folder_pro
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_picker_sheet.dart';
 import 'package:ai_voice_docs/features/history/data/history_item.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/features/history/presentation/widgets/share_format_sheet.dart';
+import 'package:ai_voice_docs/features/history/presentation/widgets/todays_reminders_card.dart';
+import 'package:ai_voice_docs/features/tasks/presentation/widgets/todays_tasks_card.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
 
@@ -85,6 +87,8 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           child: Column(
             children: [
+              const TodaysRemindersCard(),
+              const TodaysTasksCard(),
               Align(
                 alignment: Alignment.centerLeft,
                 child: FolderSelectorChip(
@@ -102,7 +106,10 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
                         recognition.transcript,
                         _language.localeHint,
                       ),
-                  onShare: () => Share.share(recognition.transcript),
+                  onShare: () => showShareFormatSheet(
+                    context,
+                    HistoryItem.voice(text: recognition.transcript, languageCode: _language.code),
+                  ),
                 ),
               ),
               const SizedBox(height: 28),

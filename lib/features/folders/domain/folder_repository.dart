@@ -5,7 +5,9 @@ abstract class FolderRepository {
 
   Future<void> add(Folder folder);
 
-  Future<void> rename(String id, String newName);
+  /// Updates whichever of [name]/[colorIndex] is passed, leaving the other
+  /// unchanged — lets the rename dialog update both in one call.
+  Future<void> update(String id, {String? name, int? colorIndex});
 
   Future<void> remove(String id);
 }

@@ -4,14 +4,9 @@ class AppConstants {
 
   static const String appName = 'Voice Docs AI';
 
-  /// Debounce applied to typed text before auto-translating, so we don't
-  /// fire a network request on every keystroke.
-  static const Duration translateDebounce = Duration(milliseconds: 500);
-
   static const int maxHistoryItems = 200;
 
   static const String defaultSourceLanguageCode = 'en';
-  static const String defaultTargetLanguageCode = 'es';
 }
 
 /// SharedPreferences keys, centralized so a typo can't silently create a
@@ -22,4 +17,6 @@ class PrefsKeys {
   static const String history = 'voxi.history.v1';
   static const String settings = 'voxi.settings.v1';
   static const String folders = 'voxi.folders.v1';
+  static const String appLockAccount = 'voxi.app_lock_account.v1';
+  static const String tasks = 'voxi.tasks.v1';
 }

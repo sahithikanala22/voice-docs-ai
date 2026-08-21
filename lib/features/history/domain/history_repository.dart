@@ -10,4 +10,6 @@ abstract class HistoryRepository {
   Future<void> clear();
 
   Future<void> updateFolder(String id, String? folderId);
+
+  Future<void> updateReminder(String id, DateTime? reminderAt);
 }

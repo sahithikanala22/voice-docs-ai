@@ -5,6 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ai_voice_docs/app.dart';
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/features/app_lock/data/app_lock_account.dart';
+import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
+import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_state.dart';
+
+/// Stands in for [AppLockController] so widget tests skip signup/PIN entry
+/// entirely and land straight on the app's home tab.
+class _FakeUnlockedAppLockController extends AppLockController {
+  @override
+  Future<AppLockState> build() async {
+    return const AppLockState(
+      account: AppLockAccount(name: 'Test', pinHash: 'unused-in-tests'),
+      isUnlocked: true,
+    );
+  }
+}
 
 void main() {
   testWidgets('App launches on the voice-to-text home tab with bottom nav', (tester) async {
@@ -21,7 +36,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          appLockControllerProvider.overrideWith(_FakeUnlockedAppLockController.new),
+        ],
         child: const AiVoiceDocsApp(),
       ),
     );
@@ -34,7 +52,6 @@ void main() {
 
     expect(find.text('Voice to Text'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
-    expect(find.text('Translate'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Tap the mic to start speaking'), findsOneWidget);

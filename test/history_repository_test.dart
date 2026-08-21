@@ -45,18 +45,4 @@ void main() {
 
     expect(await repository.getAll(), isEmpty);
   });
-
-  test('translation entries round-trip through JSON with target language', () async {
-    await repository.add(HistoryItem.translation(
-      sourceText: 'hello',
-      translatedText: 'hola',
-      sourceLanguageCode: 'en',
-      targetLanguageCode: 'es',
-    ));
-
-    final items = await repository.getAll();
-    expect(items.single.type, HistoryItemType.translation);
-    expect(items.single.translatedText, 'hola');
-    expect(items.single.targetLanguageCode, 'es');
-  });
 }

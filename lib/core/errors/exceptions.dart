@@ -6,11 +6,6 @@ class SpeechException implements Exception {
   final String message;
 }
 
-class TranslationException implements Exception {
-  const TranslationException(this.message);
-  final String message;
-}
-
 class TtsException implements Exception {
   const TtsException(this.message);
   final String message;

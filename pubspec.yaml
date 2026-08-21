@@ -19,9 +19,6 @@ dependencies:
   # Navigation
   go_router: ^15.1.2
 
-  # Networking (used by translation datasource + reserved for cloud provider stubs)
-  dio: ^5.7.0
-
   # Immutable models / codegen
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
@@ -32,7 +29,6 @@ dependencies:
   # Speech, translation & TTS
   speech_to_text: ^7.0.0
   flutter_tts: ^4.2.0
-  translator: ^1.0.3+1
 
   # Permissions & platform
   permission_handler: ^11.3.1
@@ -45,6 +41,12 @@ dependencies:
   path_provider: ^2.1.6
   archive: ^4.0.9
   collection: ^1.19.1
+  crypto: ^3.0.7
+
+  # Local reminder notifications
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^5.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

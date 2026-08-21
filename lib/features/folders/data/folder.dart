@@ -17,9 +17,14 @@ class Folder with _$Folder {
     required String id,
     required String name,
     required DateTime createdAt,
+    /// Index into `AppTheme.folderPalette` — assigned once at creation time
+    /// (round-robin by however many folders already existed) and kept
+    /// stable afterward so a folder's color never changes underneath it.
+    @Default(0) int colorIndex,
   }) = _Folder;
 
   factory Folder.fromJson(Map<String, dynamic> json) => _$FolderFromJson(json);
 
-  factory Folder.create(String name) => Folder(id: _nextId(), name: name, createdAt: DateTime.now());
+  factory Folder.create(String name, {int colorIndex = 0}) =>
+      Folder(id: _nextId(), name: name, createdAt: DateTime.now(), colorIndex: colorIndex);
 }

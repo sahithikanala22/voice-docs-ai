@@ -18,22 +18,14 @@ import 'history_item.dart';
 /// provides the zip writer.
 class HistoryWordGenerator {
   Future<File> generate(HistoryItem item) async {
-    final isTranslation = item.type == HistoryItemType.translation;
     final sourceLang = languageByCode(item.sourceLanguageCode);
 
     final body = StringBuffer()
-      ..write(_paragraph(isTranslation ? 'Translation' : 'Voice Transcript', bold: true, size: 32))
+      ..write(_paragraph('Voice Transcript', bold: true, size: 32))
       ..write(_paragraph(DateFormat('MMM d, yyyy · h:mm a').format(item.timestamp), size: 18, colorHex: '666666'))
       ..write(_emptyParagraph())
       ..write(_paragraph(sourceLang.name, bold: true, size: 22))
       ..write(_paragraph(item.sourceText, size: 24));
-
-    if (isTranslation) {
-      body
-        ..write(_emptyParagraph())
-        ..write(_paragraph(languageByCode(item.targetLanguageCode!).name, bold: true, size: 22))
-        ..write(_paragraph(item.translatedText ?? '', size: 24));
-    }
 
     final documentXml =
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'

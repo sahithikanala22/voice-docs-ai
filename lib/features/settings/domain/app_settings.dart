@@ -11,12 +11,9 @@ class AppSettings with _$AppSettings {
   const factory AppSettings({
     @Default(ThemeMode.system) ThemeMode themeMode,
     @Default(AppConstants.defaultSourceLanguageCode) String sourceLanguageCode,
-    @Default(AppConstants.defaultTargetLanguageCode) String targetLanguageCode,
-    @Default(true) bool autoPlayTranslationTts,
     @Default(true) bool hapticFeedback,
-    /// The folder new voice/translation entries currently save into, chosen
-    /// via the folder selector on the Voice/Translate screens. Null means
-    /// unfiled.
+    /// The folder new voice entries currently save into, chosen via the
+    /// folder selector on the Voice screen. Null means unfiled.
     String? currentFolderId,
   }) = _AppSettings;
 

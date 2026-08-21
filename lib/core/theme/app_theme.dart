@@ -22,6 +22,21 @@ class AppTheme {
     Color(0xFFF0A860),
   ];
 
+  /// Assigned round-robin to folders as they're created, so each one gets a
+  /// distinct, consistent color for quick visual scanning in History —
+  /// separate from [brandRays] since folders need more than 5 distinct
+  /// values and don't need to match the logo specifically.
+  static const List<Color> folderPalette = [
+    Color(0xFF3EC6F0),
+    Color(0xFF6B8CF5),
+    Color(0xFF9B6FE8),
+    Color(0xFFE85B9B),
+    Color(0xFFF0A860),
+    Color(0xFF4CAF8E),
+    Color(0xFFE0574C),
+    Color(0xFF54B0E8),
+  ];
+
   /// Two-stop gradient (primary → tertiary) for hero surfaces that need to
   /// stay readable with text on top — the translated chat bubble, gradient
   /// buttons, etc. Bolder than a flat fill, calmer than the full rainbow.

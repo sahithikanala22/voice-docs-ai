@@ -17,11 +17,14 @@ class FolderRepositoryImpl implements FolderRepository {
   }
 
   @override
-  Future<void> rename(String id, String newName) async {
+  Future<void> update(String id, {String? name, int? colorIndex}) async {
     final folders = _dataSource.readAll();
     final index = folders.indexWhere((f) => f.id == id);
     if (index == -1) return;
-    folders[index] = folders[index].copyWith(name: newName);
+    folders[index] = folders[index].copyWith(
+      name: name ?? folders[index].name,
+      colorIndex: colorIndex ?? folders[index].colorIndex,
+    );
     await _dataSource.writeAll(folders);
   }
 
