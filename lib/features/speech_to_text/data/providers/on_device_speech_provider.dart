@@ -166,6 +166,14 @@ class OnDeviceSpeechProvider implements SpeechProvider {
         partialResults: true,
         listenMode: stt.ListenMode.dictation,
         localeId: _activeLocaleId,
+        // Maps to Android's EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS.
+        // Some OEM recognizers (notably ColorOS/Realme) never fire
+        // onPartialResults at all — the only way text appears "live" there
+        // is via the OS-silence-triggered chunk restart above, so keeping
+        // this short (instead of the device's multi-second default) is what
+        // makes speech show up promptly instead of only after a long pause
+        // or full stop.
+        pauseFor: const Duration(seconds: 2),
       ),
     );
   }

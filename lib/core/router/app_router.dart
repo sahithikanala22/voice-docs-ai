@@ -12,6 +12,7 @@ import 'package:ai_voice_docs/features/history/presentation/screens/history_scre
 import 'package:ai_voice_docs/features/settings/presentation/screens/language_picker_screen.dart';
 import 'package:ai_voice_docs/features/settings/presentation/screens/settings_screen.dart';
 import 'package:ai_voice_docs/features/speech_to_text/presentation/screens/voice_to_text_screen.dart';
+import 'package:ai_voice_docs/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:ai_voice_docs/navigation/root_scaffold.dart';
 
 const _lockRoutes = {'/signup', '/pin'};
@@ -54,6 +55,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(path: '/', builder: (context, state) => const VoiceToTextScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/history', builder: (context, state) => const HistoryScreen()),

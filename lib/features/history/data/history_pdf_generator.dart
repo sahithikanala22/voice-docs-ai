@@ -62,4 +62,52 @@ class HistoryPdfGenerator {
     await file.writeAsBytes(await doc.save());
     return file;
   }
+
+  /// Renders every item in [items] (oldest first) as one multi-page digest —
+  /// used for "export this month"/"export this folder" instead of sharing
+  /// entries one at a time. [title] and [fileSlug] identify the digest (e.g.
+  /// "August 2026" / "august_2026").
+  Future<File> generateDigest(List<HistoryItem> items, {required String title, required String fileSlug}) async {
+    final sorted = items.toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    final doc = pw.Document();
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        header: (context) => context.pageNumber == 1
+            ? pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(title, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    '${sorted.length} ${sorted.length == 1 ? 'entry' : 'entries'}',
+                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                  ),
+                  pw.SizedBox(height: 16),
+                ],
+              )
+            : pw.SizedBox(),
+        build: (context) => [
+          for (final item in sorted) ...[
+            pw.Text(
+              DateFormat('EEEE, MMM d, yyyy · h:mm a').format(item.timestamp),
+              style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Text(item.sourceText, style: const pw.TextStyle(fontSize: 13)),
+            pw.SizedBox(height: 18),
+            pw.Divider(color: PdfColors.grey300),
+            pw.SizedBox(height: 4),
+          ],
+        ],
+      ),
+    );
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/ai_voice_docs_digest_$fileSlug.pdf');
+    await file.writeAsBytes(await doc.save());
+    return file;
+  }
 }

@@ -21,7 +21,10 @@ class TaskRepositoryImpl implements TaskRepository {
     final tasks = _dataSource.readAll();
     final index = tasks.indexWhere((t) => t.id == id);
     if (index == -1) return;
-    tasks[index] = tasks[index].copyWith(isDone: isDone);
+    final task = tasks[index];
+    tasks[index] = task.recurrence == TaskRecurrence.none
+        ? task.copyWith(isDone: isDone)
+        : task.copyWith(lastCompletedDate: isDone ? DateTime.now() : null);
     await _dataSource.writeAll(tasks);
   }
 
@@ -34,6 +37,15 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> clearCompleted() async {
     final tasks = _dataSource.readAll()..removeWhere((t) => t.isDone);
+    await _dataSource.writeAll(tasks);
+  }
+
+  @override
+  Future<void> setReminder(String id, DateTime? reminderAt) async {
+    final tasks = _dataSource.readAll();
+    final index = tasks.indexWhere((t) => t.id == id);
+    if (index == -1) return;
+    tasks[index] = tasks[index].copyWith(reminderAt: reminderAt);
     await _dataSource.writeAll(tasks);
   }
 }

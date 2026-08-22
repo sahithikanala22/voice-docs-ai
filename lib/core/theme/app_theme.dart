@@ -58,12 +58,17 @@ class AppTheme {
     return LinearGradient(begin: begin, end: end, colors: brandRays);
   }
 
-  static ThemeData light() => _base(
-        ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.light),
+  /// [dynamicScheme] is the device's wallpaper-derived Material You palette
+  /// (from `DynamicColorBuilder`), used only when the user opts in via
+  /// Settings — the app defaults to its own brand seed color rather than
+  /// wallpaper colors, since "Bold & vibrant" was a deliberate design choice
+  /// that a muted system palette could otherwise quietly override.
+  static ThemeData light({ColorScheme? dynamicScheme}) => _base(
+        dynamicScheme ?? ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.light),
       );
 
-  static ThemeData dark() => _base(
-        ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.dark),
+  static ThemeData dark({ColorScheme? dynamicScheme}) => _base(
+        dynamicScheme ?? ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.dark),
       );
 
   static ThemeData _base(ColorScheme scheme) {

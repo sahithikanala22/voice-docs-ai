@@ -47,6 +47,48 @@ class HistoryWordGenerator {
     return file;
   }
 
+  /// Renders every item in [items] (oldest first) as one `.docx` digest —
+  /// the Word counterpart to [HistoryPdfGenerator.generateDigest].
+  Future<File> generateDigest(List<HistoryItem> items, {required String title, required String fileSlug}) async {
+    final sorted = items.toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+
+    final body = StringBuffer()
+      ..write(_paragraph(title, bold: true, size: 32))
+      ..write(_paragraph(
+        '${sorted.length} ${sorted.length == 1 ? 'entry' : 'entries'}',
+        size: 18,
+        colorHex: '666666',
+      ))
+      ..write(_emptyParagraph());
+
+    for (final item in sorted) {
+      body
+        ..write(_paragraph(DateFormat('EEEE, MMM d, yyyy · h:mm a').format(item.timestamp),
+            bold: true, size: 20))
+        ..write(_paragraph(item.sourceText, size: 24))
+        ..write(_emptyParagraph());
+    }
+
+    final documentXml =
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:body>$body<w:sectPr/></w:body>'
+        '</w:document>';
+
+    final archive = Archive()
+      ..addFile(ArchiveFile.string('[Content_Types].xml', _contentTypesXml))
+      ..addFile(ArchiveFile.string('_rels/.rels', _rootRelsXml))
+      ..addFile(ArchiveFile.string('word/_rels/document.xml.rels', _documentRelsXml))
+      ..addFile(ArchiveFile.string('word/document.xml', documentXml));
+
+    final bytes = ZipEncoder().encode(archive);
+
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/ai_voice_docs_digest_$fileSlug.docx');
+    await file.writeAsBytes(bytes);
+    return file;
+  }
+
   String _paragraph(String text, {bool bold = false, int size = 24, String? colorHex}) {
     final props = StringBuffer();
     if (bold) props.write('<w:b/>');

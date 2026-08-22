@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
 
 import '../../data/settings_local_datasource.dart';
 import '../../data/settings_repository_impl.dart';
@@ -40,4 +41,11 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setCurrentFolderId(String? folderId) =>
       _update((s) => s.copyWith(currentFolderId: folderId));
+
+  Future<void> setUseDynamicColor(bool value) => _update((s) => s.copyWith(useDynamicColor: value));
+
+  Future<void> setSpeechEngine(SpeechEngine engine) => _update((s) => s.copyWith(speechEngine: engine));
+
+  Future<void> setGoogleCloudApiKey(String? apiKey) =>
+      _update((s) => s.copyWith(googleCloudApiKey: apiKey));
 }

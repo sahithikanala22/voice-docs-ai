@@ -58,16 +58,23 @@ class NotificationService {
     return granted ?? true;
   }
 
-  /// Schedules a one-shot reminder at [scheduledDate]. [id] must be stable
-  /// for a given entry so a later call with the same id replaces (rather
-  /// than duplicates) any previously scheduled reminder for it. Falls back
-  /// to inexact delivery when the device hasn't granted exact-alarm access,
+  /// Schedules a reminder at [scheduledDate]. [id] must be stable for a
+  /// given entry so a later call with the same id replaces (rather than
+  /// duplicates) any previously scheduled reminder for it. Falls back to
+  /// inexact delivery when the device hasn't granted exact-alarm access,
   /// rather than failing the whole reminder outright.
+  ///
+  /// [matchDateTimeComponents] turns this into a repeating reminder: pass
+  /// [DateTimeComponents.time] to repeat daily at [scheduledDate]'s
+  /// time-of-day, or [DateTimeComponents.dayOfWeekAndTime] to repeat weekly
+  /// on its weekday+time — used for recurring tasks. Leave null for a
+  /// one-shot reminder.
   Future<void> scheduleReminder({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
+    DateTimeComponents? matchDateTimeComponents,
   }) async {
     final androidImpl =
         _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -90,6 +97,7 @@ class NotificationService {
       androidScheduleMode:
           canExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: matchDateTimeComponents,
     );
   }
 

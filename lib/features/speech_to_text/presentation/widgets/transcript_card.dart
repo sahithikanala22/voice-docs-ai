@@ -9,6 +9,7 @@ class TranscriptCard extends StatelessWidget {
   const TranscriptCard({
     super.key,
     required this.transcript,
+    required this.isListening,
     required this.onCopy,
     required this.onClear,
     required this.onSpeak,
@@ -16,6 +17,7 @@ class TranscriptCard extends StatelessWidget {
   });
 
   final String transcript;
+  final bool isListening;
   final VoidCallback onCopy;
   final VoidCallback onClear;
   final VoidCallback onSpeak;
@@ -43,11 +45,21 @@ class TranscriptCard extends StatelessWidget {
                         ),
                       ),
                     )
-                  : const EmptyState(
-                      icon: Icons.mic_none_rounded,
-                      title: 'Tap the mic to start speaking',
-                      subtitle: 'Your words will appear here in real time.',
-                    ),
+                  : isListening
+                      // Distinct from the idle placeholder below — without
+                      // this, a device whose recognizer is slow to return
+                      // its first chunk looks identical to "nothing is
+                      // happening", which reads as broken rather than busy.
+                      ? const EmptyState(
+                          icon: Icons.graphic_eq_rounded,
+                          title: 'Listening…',
+                          subtitle: 'Keep speaking — recognized text will appear here shortly.',
+                        )
+                      : const EmptyState(
+                          icon: Icons.mic_none_rounded,
+                          title: 'Tap the mic to start speaking',
+                          subtitle: 'Your words will appear here in real time.',
+                        ),
             ),
             const Divider(height: 24),
             Row(

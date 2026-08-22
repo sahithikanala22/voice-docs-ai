@@ -1,15 +1,40 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+
+import '../../data/providers/google_cloud_speech_provider.dart';
 import '../../data/providers/on_device_speech_provider.dart';
 import '../../data/providers/speech_provider.dart';
 import '../../data/repositories/speech_repository_impl.dart';
 import '../../domain/recognition_state.dart';
+import '../../domain/speech_engine.dart';
 import '../../domain/speech_repository.dart';
 
-/// Swap this override to plug in a different [SpeechProvider] (e.g. the
-/// cloud stub) without touching anything else in the feature.
-final speechProviderImplProvider = Provider<SpeechProvider>((ref) => OnDeviceSpeechProvider());
+/// Picks the active [SpeechProvider] from Settings' `speechEngine` choice —
+/// [SpeechEngine.onDevice] (default, free, offline) or
+/// [SpeechEngine.googleCloud] (needs an API key, see
+/// [GoogleCloudSpeechProvider]'s doc comment for why it's batch-only rather
+/// than live-streaming).
+///
+/// A Vosk-backed hybrid provider (`vosk_flutter_service`; offline, reliable
+/// live captions for the languages it has a model for) was tried here and
+/// fully reverted: on this device, the plugin's native Android side threw
+/// `UnsatisfiedLinkError: Can't obtain peer field ID for class
+/// com.sun.jna.Pointer` from a static initializer the moment the plugin was
+/// registered — before any Dart code even ran — which crashed the app on
+/// every launch, not just when speech recognition was used. That's a
+/// JNA/ABI bootstrapping bug in the plugin's bundled native library for
+/// this device's CPU architecture, not something fixable from the Dart or
+/// Gradle side, and not avoidable by simply not calling into it from Dart —
+/// the dependency itself had to come out.
+final speechProviderImplProvider = Provider<SpeechProvider>((ref) {
+  final settings = ref.watch(settingsControllerProvider).value;
+  if (settings?.speechEngine == SpeechEngine.googleCloud) {
+    return GoogleCloudSpeechProvider(apiKey: settings?.googleCloudApiKey ?? '');
+  }
+  return OnDeviceSpeechProvider();
+});
 
 final speechRepositoryProvider = Provider<SpeechRepository>((ref) {
   return SpeechRepositoryImpl(ref.watch(speechProviderImplProvider));

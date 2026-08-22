@@ -15,7 +15,12 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.aivoicedocs.app"
-    compileSdk = flutter.compileSdkVersion
+    // file_picker's flutter_plugin_android_lifecycle dependency requires
+    // compiling against API 36+; flutter.compileSdkVersion (34/35 depending
+    // on the Flutter release) is too old, so pin explicitly rather than via
+    // the Flutter-provided default. This only affects what APIs are
+    // compiled against, not minSdk/targetSdk (device compatibility).
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

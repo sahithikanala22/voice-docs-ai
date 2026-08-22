@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
 
 part 'app_settings.freezed.dart';
 part 'app_settings.g.dart';
@@ -15,6 +16,16 @@ class AppSettings with _$AppSettings {
     /// The folder new voice entries currently save into, chosen via the
     /// folder selector on the Voice screen. Null means unfiled.
     String? currentFolderId,
+    /// Opt-in to theming from the device wallpaper (Material You) instead of
+    /// the app's own brand color — off by default, see `AppTheme.light`.
+    @Default(false) bool useDynamicColor,
+    /// Which backend transcribes speech — see [SpeechEngine].
+    @Default(SpeechEngine.onDevice) SpeechEngine speechEngine,
+    /// User-supplied Google Cloud Speech-to-Text API key, only used when
+    /// [speechEngine] is [SpeechEngine.googleCloud]. Stored locally
+    /// (SharedPreferences) only — never bundled in the app or committed to
+    /// source, so it can't leak via the APK or the repo.
+    String? googleCloudApiKey,
   }) = _AppSettings;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => _$AppSettingsFromJson(json);

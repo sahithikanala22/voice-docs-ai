@@ -72,3 +72,51 @@ Future<void> showShareFormatSheet(BuildContext context, HistoryItem item) {
     },
   );
 }
+
+/// Same PDF/Word chooser as [showShareFormatSheet], but for a whole batch of
+/// entries bundled into one digest file (e.g. "export this month") instead
+/// of a single entry — used by the Calendar tab's month export action.
+Future<void> showDigestShareFormatSheet(
+  BuildContext context,
+  List<HistoryItem> items, {
+  required String title,
+  required String fileSlug,
+}) {
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: const Text('Export as PDF'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                shareGeneratedFile(
+                  context,
+                  () => HistoryPdfGenerator().generateDigest(items, title: title, fileSlug: fileSlug),
+                  'Could not create the PDF.',
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Export as Word'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                shareGeneratedFile(
+                  context,
+                  () => HistoryWordGenerator().generateDigest(items, title: title, fileSlug: fileSlug),
+                  'Could not create the Word document.',
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}

@@ -15,6 +15,7 @@ import 'package:ai_voice_docs/features/history/presentation/widgets/share_format
 
 import '../widgets/add_entry_sheet.dart';
 import '../widgets/month_calendar_grid.dart';
+import '../widgets/year_heatmap_view.dart';
 
 /// Browse saved entries by date: a month grid with per-day folder dots, tap
 /// a day to see everything saved on it. Reuses the exact same detail sheet,
@@ -34,6 +35,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   /// as the History screen's filter.
   String? _filterFolderId;
 
+  bool _showYear = false;
+
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(historyControllerProvider);
@@ -42,7 +45,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar'), bottom: const GradientAppBarUnderline()),
+      appBar: AppBar(
+        title: const Text('Calendar'),
+        actions: [
+          IconButton(
+            icon: Icon(_showYear ? Icons.calendar_view_month_rounded : Icons.grid_view_rounded),
+            tooltip: _showYear ? 'Month view' : 'Year view',
+            onPressed: () => setState(() => _showYear = !_showYear),
+          ),
+        ],
+        bottom: const GradientAppBarUnderline(),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showAddEntrySheet(context, initialDate: _selectedDay),
         tooltip: 'Add entry for this day',
@@ -65,13 +78,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               entriesByDay.putIfAbsent(DateUtils.dateOnly(item.timestamp), () => []).add(item);
             }
 
-            final monthEntryCount = filteredItems
+            final monthItems = filteredItems
                 .where((e) => e.timestamp.year == _visibleMonth.year && e.timestamp.month == _visibleMonth.month)
-                .length;
+                .toList();
+            final monthEntryCount = monthItems.length;
+            final yearEntryCount =
+                filteredItems.where((e) => e.timestamp.year == _visibleMonth.year).length;
             final selectedDayEntries = entriesByDay[_selectedDay] ?? const <HistoryItem>[];
             final today = DateUtils.dateOnly(DateTime.now());
             final isToday = DateUtils.isSameDay(_selectedDay, today);
             final isCurrentMonth = _visibleMonth.year == today.year && _visibleMonth.month == today.month;
+            final isCurrentYear = _visibleMonth.year == today.year;
 
             return Column(
               children: [
@@ -95,16 +112,20 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       children: [
                         _MonthNavButton(
                           icon: Icons.chevron_left_rounded,
-                          tooltip: 'Previous month',
-                          onTap: () => setState(
-                            () => _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month - 1),
-                          ),
+                          tooltip: _showYear ? 'Previous year' : 'Previous month',
+                          onTap: () => setState(() {
+                            _visibleMonth = _showYear
+                                ? DateTime(_visibleMonth.year - 1, _visibleMonth.month)
+                                : DateTime(_visibleMonth.year, _visibleMonth.month - 1);
+                          }),
                         ),
                         Expanded(
                           child: Column(
                             children: [
                               Text(
-                                DateFormat('MMMM yyyy').format(_visibleMonth),
+                                _showYear
+                                    ? '${_visibleMonth.year}'
+                                    : DateFormat('MMMM yyyy').format(_visibleMonth),
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context)
                                     .textTheme
@@ -113,13 +134,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '$monthEntryCount ${monthEntryCount == 1 ? 'entry' : 'entries'} this month',
+                                _showYear
+                                    ? '$yearEntryCount ${yearEntryCount == 1 ? 'entry' : 'entries'} this year'
+                                    : '$monthEntryCount ${monthEntryCount == 1 ? 'entry' : 'entries'} this month',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall
                                     ?.copyWith(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
                               ),
-                              if (!isCurrentMonth || !isToday) ...[
+                              if (_showYear ? !isCurrentYear : (!isCurrentMonth || !isToday)) ...[
                                 const SizedBox(height: 6),
                                 GestureDetector(
                                   onTap: () => setState(() {
@@ -147,15 +170,47 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         ),
                         _MonthNavButton(
                           icon: Icons.chevron_right_rounded,
-                          tooltip: 'Next month',
-                          onTap: () => setState(
-                            () => _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + 1),
-                          ),
+                          tooltip: _showYear ? 'Next year' : 'Next month',
+                          onTap: () => setState(() {
+                            _visibleMonth = _showYear
+                                ? DateTime(_visibleMonth.year + 1, _visibleMonth.month)
+                                : DateTime(_visibleMonth.year, _visibleMonth.month + 1);
+                          }),
                         ),
                       ],
                     ),
                   ),
                 ),
+                if (_showYear)
+                  Expanded(
+                    child: YearHeatmapView(
+                      year: _visibleMonth.year,
+                      countsForDay: (day) => entriesByDay[day]?.length ?? 0,
+                      onDaySelected: (day) => setState(() {
+                        _showYear = false;
+                        _selectedDay = day;
+                        _visibleMonth = DateTime(day.year, day.month);
+                      }),
+                    ),
+                  )
+                else ...[
+                if (monthItems.isNotEmpty)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12, top: 2),
+                      child: TextButton.icon(
+                        onPressed: () => showDigestShareFormatSheet(
+                          context,
+                          monthItems,
+                          title: DateFormat('MMMM yyyy').format(_visibleMonth),
+                          fileSlug: DateFormat('yyyy_MM').format(_visibleMonth),
+                        ),
+                        icon: const Icon(Icons.ios_share_rounded, size: 16),
+                        label: const Text('Export month'),
+                      ),
+                    ),
+                  ),
                 if (folders.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -289,6 +344,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           },
                         ),
                 ),
+                ],
               ],
             );
           },

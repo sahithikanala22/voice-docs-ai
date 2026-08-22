@@ -29,9 +29,13 @@ dependencies:
   # Speech, translation & TTS
   speech_to_text: ^7.0.0
   flutter_tts: ^4.2.0
+  record: ^7.1.1
+
+  # Networking (Google Cloud Speech-to-Text REST calls)
+  dio: ^5.7.0
 
   # Permissions & platform
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.3
   share_plus: ^10.1.2
 
   # UI
@@ -47,6 +51,12 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
   flutter_timezone: ^5.0.0
+
+  # Backup/restore file picking
+  file_picker: ^10.3.10
+
+  # Optional Material You dynamic color
+  dynamic_color: ^1.7.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
