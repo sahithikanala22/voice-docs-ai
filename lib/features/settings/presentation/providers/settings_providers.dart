@@ -48,4 +48,16 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setGoogleCloudApiKey(String? apiKey) =>
       _update((s) => s.copyWith(googleCloudApiKey: apiKey));
+
+  /// Sets (or, passing null, clears back to the device default) the
+  /// preferred TTS voice for [languageCode].
+  Future<void> setTtsVoice(String languageCode, String? voiceName) => _update((s) {
+        final voices = Map<String, String>.from(s.ttsVoiceByLanguage);
+        if (voiceName == null) {
+          voices.remove(languageCode);
+        } else {
+          voices[languageCode] = voiceName;
+        }
+        return s.copyWith(ttsVoiceByLanguage: voices);
+      });
 }

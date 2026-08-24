@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+
 import '../../data/providers/device_tts_provider.dart';
 import '../../data/providers/tts_provider.dart';
 import '../../data/repositories/tts_repository_impl.dart';
 import '../../domain/tts_repository.dart';
+import '../../domain/tts_voice_option.dart';
 
 final ttsProviderImplProvider = Provider<TtsProvider>((ref) => DeviceTtsProvider());
 
@@ -27,11 +30,15 @@ class TtsController extends Notifier<bool> {
 
   Future<void> speak(String text, String languageCode) async {
     if (text.trim().isEmpty) return;
-    await ref.read(ttsRepositoryProvider).speak(text, languageCode);
+    final voiceName = ref.read(settingsControllerProvider).value?.ttsVoiceByLanguage[languageCode];
+    await ref.read(ttsRepositoryProvider).speak(text, languageCode, voiceName: voiceName);
   }
 
   Future<void> stop() async {
     await ref.read(ttsRepositoryProvider).stop();
     state = false;
   }
+
+  Future<List<TtsVoiceOption>> getVoices(String languageCode) =>
+      ref.read(ttsRepositoryProvider).getVoices(languageCode);
 }

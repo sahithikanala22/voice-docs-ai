@@ -1,5 +1,6 @@
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../../domain/tts_voice_option.dart';
 import 'tts_provider.dart';
 
 /// Default [TtsProvider]: wraps `flutter_tts`, which talks to the native OS
@@ -12,6 +13,7 @@ class DeviceTtsProvider implements TtsProvider {
 
   final FlutterTts _tts = FlutterTts();
   List<String>? _deviceLanguages;
+  List<TtsVoiceOption>? _deviceVoices;
 
   Future<List<String>> _loadDeviceLanguages() async {
     if (_deviceLanguages != null) return _deviceLanguages!;
@@ -22,6 +24,24 @@ class DeviceTtsProvider implements TtsProvider {
       _deviceLanguages = const [];
     }
     return _deviceLanguages!;
+  }
+
+  Future<List<TtsVoiceOption>> _loadDeviceVoices() async {
+    if (_deviceVoices != null) return _deviceVoices!;
+    try {
+      final result = await _tts.getVoices as List;
+      _deviceVoices = result
+          .whereType<Map>()
+          .map((v) => TtsVoiceOption(
+                name: v['name']?.toString() ?? '',
+                locale: v['locale']?.toString() ?? '',
+              ))
+          .where((v) => v.name.isNotEmpty && v.locale.isNotEmpty)
+          .toList();
+    } catch (_) {
+      _deviceVoices = const [];
+    }
+    return _deviceVoices!;
   }
 
   /// Mirrors [OnDeviceSpeechProvider]'s locale resolution. [languageHint] is
@@ -51,9 +71,33 @@ class DeviceTtsProvider implements TtsProvider {
   }
 
   @override
-  Future<void> speak(String text, String languageCode) async {
+  Future<List<TtsVoiceOption>> getVoices(String languageCode) async {
+    final voices = await _loadDeviceVoices();
+    String normalize(String code) => code.toLowerCase().replaceAll('_', '-');
+    String primarySubtag(String code) => normalize(code).split('-').first;
+
+    final normalizedTarget = normalize(languageCode);
+    final exact = voices.where((v) => normalize(v.locale) == normalizedTarget).toList();
+    if (exact.isNotEmpty) return exact;
+
+    final targetPrimary = primarySubtag(languageCode);
+    return voices.where((v) => primarySubtag(v.locale) == targetPrimary).toList();
+  }
+
+  @override
+  Future<void> speak(String text, String languageCode, {String? voiceName}) async {
     final deviceLanguages = await _loadDeviceLanguages();
-    await _tts.setLanguage(_resolveLanguage(languageCode, deviceLanguages));
+    final resolvedLanguage = _resolveLanguage(languageCode, deviceLanguages);
+    await _tts.setLanguage(resolvedLanguage);
+
+    if (voiceName != null) {
+      final voices = await getVoices(languageCode);
+      final match = voices.where((v) => v.name == voiceName).toList();
+      if (match.isNotEmpty) {
+        await _tts.setVoice({'name': match.first.name, 'locale': match.first.locale});
+      }
+    }
+
     await _tts.speak(text);
   }
 

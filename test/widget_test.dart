@@ -50,7 +50,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    expect(find.text('Voice to Text'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);

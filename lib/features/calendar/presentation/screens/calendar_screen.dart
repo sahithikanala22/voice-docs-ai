@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
+import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_filter_chip.dart';
@@ -49,7 +50,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         title: const Text('Calendar'),
         actions: [
           IconButton(
-            icon: Icon(_showYear ? Icons.calendar_view_month_rounded : Icons.grid_view_rounded),
+            icon: Icon(
+              _showYear
+                  ? Icons.calendar_view_month_rounded
+                  : Icons.grid_view_rounded,
+            ),
             tooltip: _showYear ? 'Month view' : 'Year view',
             onPressed: () => setState(() => _showYear = !_showYear),
           ),
@@ -62,292 +67,383 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add entry'),
       ),
-      body: SafeArea(
-        child: historyAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Could not load history: $err')),
-          data: (items) {
-            final filteredItems = _filterFolderId == null
-                ? items
-                : items
-                    .where((e) => _filterFolderId == '' ? e.folderId == null : e.folderId == _filterFolderId)
-                    .toList();
+      body: FloatingDotsBackground(
+        child: SafeArea(
+          child: historyAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, _) =>
+                Center(child: Text('Could not load history: $err')),
+            data: (items) {
+              final filteredItems = _filterFolderId == null
+                  ? items
+                  : items
+                        .where(
+                          (e) => _filterFolderId == ''
+                              ? e.folderId == null
+                              : e.folderId == _filterFolderId,
+                        )
+                        .toList();
 
-            final entriesByDay = <DateTime, List<HistoryItem>>{};
-            for (final item in filteredItems) {
-              entriesByDay.putIfAbsent(DateUtils.dateOnly(item.timestamp), () => []).add(item);
-            }
+              final entriesByDay = <DateTime, List<HistoryItem>>{};
+              for (final item in filteredItems) {
+                entriesByDay
+                    .putIfAbsent(DateUtils.dateOnly(item.timestamp), () => [])
+                    .add(item);
+              }
 
-            final monthItems = filteredItems
-                .where((e) => e.timestamp.year == _visibleMonth.year && e.timestamp.month == _visibleMonth.month)
-                .toList();
-            final monthEntryCount = monthItems.length;
-            final yearEntryCount =
-                filteredItems.where((e) => e.timestamp.year == _visibleMonth.year).length;
-            final selectedDayEntries = entriesByDay[_selectedDay] ?? const <HistoryItem>[];
-            final today = DateUtils.dateOnly(DateTime.now());
-            final isToday = DateUtils.isSameDay(_selectedDay, today);
-            final isCurrentMonth = _visibleMonth.year == today.year && _visibleMonth.month == today.month;
-            final isCurrentYear = _visibleMonth.year == today.year;
+              final monthItems = filteredItems
+                  .where(
+                    (e) =>
+                        e.timestamp.year == _visibleMonth.year &&
+                        e.timestamp.month == _visibleMonth.month,
+                  )
+                  .toList();
+              final monthEntryCount = monthItems.length;
+              final yearEntryCount = filteredItems
+                  .where((e) => e.timestamp.year == _visibleMonth.year)
+                  .length;
+              final selectedDayEntries =
+                  entriesByDay[_selectedDay] ?? const <HistoryItem>[];
+              final today = DateUtils.dateOnly(DateTime.now());
+              final isToday = DateUtils.isSameDay(_selectedDay, today);
+              final isCurrentMonth =
+                  _visibleMonth.year == today.year &&
+                  _visibleMonth.month == today.month;
+              final isCurrentYear = _visibleMonth.year == today.year;
 
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          scheme.primary.withValues(alpha: 0.16),
-                          scheme.tertiary.withValues(alpha: 0.16),
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            scheme.primary.withValues(alpha: 0.16),
+                            scheme.tertiary.withValues(alpha: 0.16),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _MonthNavButton(
+                            icon: Icons.chevron_left_rounded,
+                            tooltip: _showYear
+                                ? 'Previous year'
+                                : 'Previous month',
+                            onTap: () => setState(() {
+                              _visibleMonth = _showYear
+                                  ? DateTime(
+                                      _visibleMonth.year - 1,
+                                      _visibleMonth.month,
+                                    )
+                                  : DateTime(
+                                      _visibleMonth.year,
+                                      _visibleMonth.month - 1,
+                                    );
+                            }),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(
+                                  _showYear
+                                      ? '${_visibleMonth.year}'
+                                      : DateFormat(
+                                          'MMMM yyyy',
+                                        ).format(_visibleMonth),
+                                  textAlign: TextAlign.center,
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(color: scheme.onSurface),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _showYear
+                                      ? '$yearEntryCount ${yearEntryCount == 1 ? 'entry' : 'entries'} this year'
+                                      : '$monthEntryCount ${monthEntryCount == 1 ? 'entry' : 'entries'} this month',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                if (_showYear
+                                    ? !isCurrentYear
+                                    : (!isCurrentMonth || !isToday)) ...[
+                                  const SizedBox(height: 6),
+                                  GestureDetector(
+                                    onTap: () => setState(() {
+                                      _visibleMonth = today;
+                                      _selectedDay = today;
+                                    }),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: scheme.surface.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          100,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Jump to today',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: scheme.primary,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          _MonthNavButton(
+                            icon: Icons.chevron_right_rounded,
+                            tooltip: _showYear ? 'Next year' : 'Next month',
+                            onTap: () => setState(() {
+                              _visibleMonth = _showYear
+                                  ? DateTime(
+                                      _visibleMonth.year + 1,
+                                      _visibleMonth.month,
+                                    )
+                                  : DateTime(
+                                      _visibleMonth.year,
+                                      _visibleMonth.month + 1,
+                                    );
+                            }),
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(24),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _MonthNavButton(
-                          icon: Icons.chevron_left_rounded,
-                          tooltip: _showYear ? 'Previous year' : 'Previous month',
-                          onTap: () => setState(() {
-                            _visibleMonth = _showYear
-                                ? DateTime(_visibleMonth.year - 1, _visibleMonth.month)
-                                : DateTime(_visibleMonth.year, _visibleMonth.month - 1);
-                          }),
+                  ),
+                  if (_showYear)
+                    Expanded(
+                      child: YearHeatmapView(
+                        year: _visibleMonth.year,
+                        countsForDay: (day) => entriesByDay[day]?.length ?? 0,
+                        onDaySelected: (day) => setState(() {
+                          _showYear = false;
+                          _selectedDay = day;
+                          _visibleMonth = DateTime(day.year, day.month);
+                        }),
+                      ),
+                    )
+                  else ...[
+                    if (monthItems.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12, top: 2),
+                          child: TextButton.icon(
+                            onPressed: () => showDigestShareFormatSheet(
+                              context,
+                              monthItems,
+                              title: DateFormat(
+                                'MMMM yyyy',
+                              ).format(_visibleMonth),
+                              fileSlug: DateFormat(
+                                'yyyy_MM',
+                              ).format(_visibleMonth),
+                            ),
+                            icon: const Icon(Icons.ios_share_rounded, size: 16),
+                            label: const Text('Export month'),
+                          ),
                         ),
-                        Expanded(
-                          child: Column(
+                      ),
+                    if (folders.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                        child: SizedBox(
+                          height: 36,
+                          child: ListView(
+                            scrollDirection: Axis.horizontal,
                             children: [
-                              Text(
-                                _showYear
-                                    ? '${_visibleMonth.year}'
-                                    : DateFormat('MMMM yyyy').format(_visibleMonth),
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleLarge
-                                    ?.copyWith(color: scheme.onSurface),
+                              FolderFilterChip(
+                                label: 'All',
+                                selected: _filterFolderId == null,
+                                onSelected: () =>
+                                    setState(() => _filterFolderId = null),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                _showYear
-                                    ? '$yearEntryCount ${yearEntryCount == 1 ? 'entry' : 'entries'} this year'
-                                    : '$monthEntryCount ${monthEntryCount == 1 ? 'entry' : 'entries'} this month',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: scheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+                              const SizedBox(width: 8),
+                              FolderFilterChip(
+                                label: 'Unfiled',
+                                selected: _filterFolderId == '',
+                                onSelected: () =>
+                                    setState(() => _filterFolderId = ''),
                               ),
-                              if (_showYear ? !isCurrentYear : (!isCurrentMonth || !isToday)) ...[
-                                const SizedBox(height: 6),
-                                GestureDetector(
-                                  onTap: () => setState(() {
-                                    _visibleMonth = today;
-                                    _selectedDay = today;
-                                  }),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: scheme.surface.withValues(alpha: 0.7),
-                                      borderRadius: BorderRadius.circular(100),
-                                    ),
-                                    child: Text(
-                                      'Jump to today',
-                                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                            color: scheme.primary,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
+                              for (final folder in folders) ...[
+                                const SizedBox(width: 8),
+                                FolderFilterChip(
+                                  label: folder.name,
+                                  color: folderColorFor(folders, folder.id),
+                                  selected: _filterFolderId == folder.id,
+                                  onSelected: () => setState(
+                                    () => _filterFolderId = folder.id,
                                   ),
                                 ),
                               ],
                             ],
                           ),
                         ),
-                        _MonthNavButton(
-                          icon: Icons.chevron_right_rounded,
-                          tooltip: _showYear ? 'Next year' : 'Next month',
-                          onTap: () => setState(() {
-                            _visibleMonth = _showYear
-                                ? DateTime(_visibleMonth.year + 1, _visibleMonth.month)
-                                : DateTime(_visibleMonth.year, _visibleMonth.month + 1);
-                          }),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 12,
+                          ),
+                          child: MonthCalendarGrid(
+                            month: _visibleMonth,
+                            selectedDay: _selectedDay,
+                            onDaySelected: (day) => setState(() {
+                              _selectedDay = day;
+                              if (day.month != _visibleMonth.month ||
+                                  day.year != _visibleMonth.year) {
+                                _visibleMonth = DateTime(day.year, day.month);
+                              }
+                            }),
+                            dotsForDay: (day) {
+                              final dayItems = entriesByDay[day];
+                              if (dayItems == null || dayItems.isEmpty) {
+                                return const [];
+                              }
+                              return {
+                                for (final item in dayItems)
+                                  folderColorFor(folders, item.folderId),
+                              }.toList();
+                            },
+                          ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_showYear)
-                  Expanded(
-                    child: YearHeatmapView(
-                      year: _visibleMonth.year,
-                      countsForDay: (day) => entriesByDay[day]?.length ?? 0,
-                      onDaySelected: (day) => setState(() {
-                        _showYear = false;
-                        _selectedDay = day;
-                        _visibleMonth = DateTime(day.year, day.month);
-                      }),
-                    ),
-                  )
-                else ...[
-                if (monthItems.isNotEmpty)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 12, top: 2),
-                      child: TextButton.icon(
-                        onPressed: () => showDigestShareFormatSheet(
-                          context,
-                          monthItems,
-                          title: DateFormat('MMMM yyyy').format(_visibleMonth),
-                          fileSlug: DateFormat('yyyy_MM').format(_visibleMonth),
-                        ),
-                        icon: const Icon(Icons.ios_share_rounded, size: 16),
-                        label: const Text('Export month'),
                       ),
                     ),
-                  ),
-                if (folders.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                    child: SizedBox(
-                      height: 36,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
                         children: [
-                          FolderFilterChip(
-                            label: 'All',
-                            selected: _filterFolderId == null,
-                            onSelected: () => setState(() => _filterFolderId = null),
+                          Icon(
+                            isToday ? Icons.today_rounded : Icons.event_rounded,
+                            size: 18,
+                            color: scheme.primary,
                           ),
                           const SizedBox(width: 8),
-                          FolderFilterChip(
-                            label: 'Unfiled',
-                            selected: _filterFolderId == '',
-                            onSelected: () => setState(() => _filterFolderId = ''),
-                          ),
-                          for (final folder in folders) ...[
-                            const SizedBox(width: 8),
-                            FolderFilterChip(
-                              label: folder.name,
-                              color: folderColorFor(folders, folder.id),
-                              selected: _filterFolderId == folder.id,
-                              onSelected: () => setState(() => _filterFolderId = folder.id),
+                          Expanded(
+                            child: Text(
+                              isToday
+                                  ? 'Today'
+                                  : DateFormat(
+                                      'EEEE, MMM d',
+                                    ).format(_selectedDay),
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
-                          ],
+                          ),
+                          if (selectedDayEntries.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(100),
+                              ),
+                              child: Text(
+                                '${selectedDayEntries.length}',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: scheme.onPrimaryContainer,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                  child: Card(
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                      child: MonthCalendarGrid(
-                        month: _visibleMonth,
-                        selectedDay: _selectedDay,
-                        onDaySelected: (day) => setState(() {
-                          _selectedDay = day;
-                          if (day.month != _visibleMonth.month || day.year != _visibleMonth.year) {
-                            _visibleMonth = DateTime(day.year, day.month);
-                          }
-                        }),
-                        dotsForDay: (day) {
-                          final dayItems = entriesByDay[day];
-                          if (dayItems == null || dayItems.isEmpty) return const [];
-                          return {for (final item in dayItems) folderColorFor(folders, item.folderId)}
-                              .toList();
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isToday ? Icons.today_rounded : Icons.event_rounded,
-                        size: 18,
-                        color: scheme.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          isToday ? 'Today' : DateFormat('EEEE, MMM d').format(_selectedDay),
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                      ),
-                      if (selectedDayEntries.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: scheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: Text(
-                            '${selectedDayEntries.length}',
-                            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: scheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.w800,
+                    const SizedBox(height: 4),
+                    Expanded(
+                      child: selectedDayEntries.isEmpty
+                          ? Column(
+                              children: [
+                                const Expanded(
+                                  child: EmptyState(
+                                    icon: Icons.event_note_outlined,
+                                    title: 'No entries this day',
+                                    subtitle:
+                                        'Voice transcripts saved on this day will show up here.',
+                                  ),
                                 ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Expanded(
-                  child: selectedDayEntries.isEmpty
-                      ? Column(
-                          children: [
-                            const Expanded(
-                              child: EmptyState(
-                                icon: Icons.event_note_outlined,
-                                title: 'No entries this day',
-                                subtitle:
-                                    'Voice transcripts saved on this day will show up here.',
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: TextButton.icon(
+                                    onPressed: () => showAddEntrySheet(
+                                      context,
+                                      initialDate: _selectedDay,
+                                    ),
+                                    icon: const Icon(Icons.add_rounded),
+                                    label: const Text('Add entry for this day'),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
                               ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: TextButton.icon(
-                                onPressed: () => showAddEntrySheet(context, initialDate: _selectedDay),
-                                icon: const Icon(Icons.add_rounded),
-                                label: const Text('Add entry for this day'),
-                              ),
-                            ),
-                          ],
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: selectedDayEntries.length,
-                          itemBuilder: (context, index) {
-                            final item = selectedDayEntries[index];
-                            return HistoryTile(
-                              item: item,
-                              folder: folderByIdOrNull(folders, item.folderId),
-                              onTap: () => showHistoryDetailSheet(context, ref, item),
-                              onDelete: () {
-                                ref.read(historyControllerProvider.notifier).removeEntry(item.id);
-                                AppSnackbar.show(context, 'Removed from history');
+                              itemCount: selectedDayEntries.length,
+                              itemBuilder: (context, index) {
+                                final item = selectedDayEntries[index];
+                                return HistoryTile(
+                                  item: item,
+                                  folder: folderByIdOrNull(
+                                    folders,
+                                    item.folderId,
+                                  ),
+                                  onTap: () => showHistoryDetailSheet(
+                                    context,
+                                    ref,
+                                    item,
+                                  ),
+                                  onDelete: () {
+                                    ref
+                                        .read(
+                                          historyControllerProvider.notifier,
+                                        )
+                                        .removeEntry(item.id);
+                                    AppSnackbar.show(
+                                      context,
+                                      'Removed from history',
+                                    );
+                                  },
+                                  onShare: () =>
+                                      showShareFormatSheet(context, item),
+                                );
                               },
-                              onShare: () => showShareFormatSheet(context, item),
-                            );
-                          },
-                        ),
-                ),
+                            ),
+                    ),
+                  ],
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -358,7 +454,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 /// sit on top of the gradient header card rather than the plain surface
 /// `IconButton` default.
 class _MonthNavButton extends StatelessWidget {
-  const _MonthNavButton({required this.icon, required this.tooltip, required this.onTap});
+  const _MonthNavButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String tooltip;
@@ -370,7 +470,12 @@ class _MonthNavButton extends StatelessWidget {
     return Material(
       color: scheme.surface.withValues(alpha: 0.7),
       shape: const CircleBorder(),
-      child: IconButton(icon: Icon(icon), tooltip: tooltip, color: scheme.primary, onPressed: onTap),
+      child: IconButton(
+        icon: Icon(icon),
+        tooltip: tooltip,
+        color: scheme.primary,
+        onPressed: onTap,
+      ),
     );
   }
 }

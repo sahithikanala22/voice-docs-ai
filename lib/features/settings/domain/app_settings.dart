@@ -26,6 +26,11 @@ class AppSettings with _$AppSettings {
     /// (SharedPreferences) only — never bundled in the app or committed to
     /// source, so it can't leak via the APK or the repo.
     String? googleCloudApiKey,
+    /// The chosen text-to-speech voice name per language code — a language
+    /// with no entry just uses the device's default voice for that
+    /// language. Keyed by `Language.code` (not the region-qualified locale)
+    /// since that's what every "speak" call already has on hand.
+    @Default(<String, String>{}) Map<String, String> ttsVoiceByLanguage,
   }) = _AppSettings;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => _$AppSettingsFromJson(json);

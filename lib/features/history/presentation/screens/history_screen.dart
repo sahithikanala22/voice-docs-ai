@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
+import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_filter_chip.dart';
@@ -50,12 +51,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 tooltip: 'Cancel',
                 onPressed: _exitSelectionMode,
               ),
-              title: Text(_selectedIds.isEmpty ? 'Select entries' : '${_selectedIds.length} selected'),
+              title: Text(
+                _selectedIds.isEmpty
+                    ? 'Select entries'
+                    : '${_selectedIds.length} selected',
+              ),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.delete_outline_rounded),
                   tooltip: 'Delete selected',
-                  onPressed: _selectedIds.isEmpty ? null : () => _confirmDeleteSelected(context),
+                  onPressed: _selectedIds.isEmpty
+                      ? null
+                      : () => _confirmDeleteSelected(context),
                 ),
               ],
               bottom: const GradientAppBarUnderline(),
@@ -76,102 +83,119 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ],
               bottom: const GradientAppBarUnderline(),
             ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              const SizedBox(height: 4),
-              TextField(
-                controller: _searchController,
-                onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
-                decoration: const InputDecoration(
-                  hintText: 'Search history',
-                  prefixIcon: Icon(Icons.search_rounded),
+      body: FloatingDotsBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                const SizedBox(height: 4),
+                TextField(
+                  controller: _searchController,
+                  onChanged: (v) =>
+                      setState(() => _query = v.trim().toLowerCase()),
+                  decoration: const InputDecoration(
+                    hintText: 'Search history',
+                    prefixIcon: Icon(Icons.search_rounded),
+                  ),
                 ),
-              ),
-              if (folders.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 36,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      FolderFilterChip(
-                        label: 'All',
-                        selected: _filterFolderId == null,
-                        onSelected: () => setState(() => _filterFolderId = null),
-                      ),
-                      const SizedBox(width: 8),
-                      FolderFilterChip(
-                        label: 'Unfiled',
-                        selected: _filterFolderId == '',
-                        onSelected: () => setState(() => _filterFolderId = ''),
-                      ),
-                      for (final folder in folders) ...[
+                if (folders.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 36,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        FolderFilterChip(
+                          label: 'All',
+                          selected: _filterFolderId == null,
+                          onSelected: () =>
+                              setState(() => _filterFolderId = null),
+                        ),
                         const SizedBox(width: 8),
                         FolderFilterChip(
-                          label: folder.name,
-                          color: folderColorFor(folders, folder.id),
-                          selected: _filterFolderId == folder.id,
-                          onSelected: () => setState(() => _filterFolderId = folder.id),
+                          label: 'Unfiled',
+                          selected: _filterFolderId == '',
+                          onSelected: () =>
+                              setState(() => _filterFolderId = ''),
                         ),
+                        for (final folder in folders) ...[
+                          const SizedBox(width: 8),
+                          FolderFilterChip(
+                            label: folder.name,
+                            color: folderColorFor(folders, folder.id),
+                            selected: _filterFolderId == folder.id,
+                            onSelected: () =>
+                                setState(() => _filterFolderId = folder.id),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Expanded(
+                  child: historyAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, _) =>
+                        Center(child: Text('Could not load history: $err')),
+                    data: (items) {
+                      final filtered = items.where((e) {
+                        final matchesQuery =
+                            _query.isEmpty ||
+                            e.sourceText.toLowerCase().contains(_query);
+                        final matchesFolder =
+                            _filterFolderId == null ||
+                            (_filterFolderId == ''
+                                ? e.folderId == null
+                                : e.folderId == _filterFolderId);
+                        return matchesQuery && matchesFolder;
+                      }).toList();
+
+                      if (filtered.isEmpty) {
+                        return const EmptyState(
+                          icon: Icons.history_rounded,
+                          title: 'No history yet',
+                          subtitle: 'Your voice transcripts will show up here.',
+                        );
+                      }
+
+                      return ListView.builder(
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final item = filtered[index];
+                          return HistoryTile(
+                            item: item,
+                            folder: folderByIdOrNull(folders, item.folderId),
+                            selectionMode: _selectionMode,
+                            selected: _selectedIds.contains(item.id),
+                            onTap: () {
+                              if (_selectionMode) {
+                                setState(() {
+                                  if (!_selectedIds.remove(item.id)) {
+                                    _selectedIds.add(item.id);
+                                  }
+                                });
+                              } else {
+                                showHistoryDetailSheet(context, ref, item);
+                              }
+                            },
+                            onDelete: () {
+                              ref
+                                  .read(historyControllerProvider.notifier)
+                                  .removeEntry(item.id);
+                              AppSnackbar.show(context, 'Removed from history');
+                            },
+                            onShare: () => showShareFormatSheet(context, item),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-              Expanded(
-                child: historyAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (err, _) => Center(child: Text('Could not load history: $err')),
-                  data: (items) {
-                    final filtered = items.where((e) {
-                      final matchesQuery = _query.isEmpty || e.sourceText.toLowerCase().contains(_query);
-                      final matchesFolder = _filterFolderId == null ||
-                          (_filterFolderId == '' ? e.folderId == null : e.folderId == _filterFolderId);
-                      return matchesQuery && matchesFolder;
-                    }).toList();
-
-                    if (filtered.isEmpty) {
-                      return const EmptyState(
-                        icon: Icons.history_rounded,
-                        title: 'No history yet',
-                        subtitle: 'Your voice transcripts will show up here.',
-                      );
-                    }
-
-                    return ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final item = filtered[index];
-                        return HistoryTile(
-                          item: item,
-                          folder: folderByIdOrNull(folders, item.folderId),
-                          selectionMode: _selectionMode,
-                          selected: _selectedIds.contains(item.id),
-                          onTap: () {
-                            if (_selectionMode) {
-                              setState(() {
-                                if (!_selectedIds.remove(item.id)) _selectedIds.add(item.id);
-                              });
-                            } else {
-                              showHistoryDetailSheet(context, ref, item);
-                            }
-                          },
-                          onDelete: () {
-                            ref.read(historyControllerProvider.notifier).removeEntry(item.id);
-                            AppSnackbar.show(context, 'Removed from history');
-                          },
-                          onShare: () => showShareFormatSheet(context, item),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -193,8 +217,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         title: Text('Delete $count ${count == 1 ? 'entry' : 'entries'}?'),
         content: const Text('This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -204,7 +234,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         await notifier.removeEntry(id);
       }
       if (context.mounted) {
-        AppSnackbar.show(context, 'Deleted $count ${count == 1 ? 'entry' : 'entries'}');
+        AppSnackbar.show(
+          context,
+          'Deleted $count ${count == 1 ? 'entry' : 'entries'}',
+        );
       }
       _exitSelectionMode();
     }
@@ -215,10 +248,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear all history?'),
-        content: const Text('This removes every saved transcript. This cannot be undone.'),
+        content: const Text(
+          'This removes every saved transcript. This cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Clear')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear'),
+          ),
         ],
       ),
     );

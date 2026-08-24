@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:ai_voice_docs/core/providers/notification_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
+import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 
 import '../../data/task.dart';
@@ -24,47 +25,58 @@ class TasksScreen extends ConsumerWidget {
     final completed = tasks.where((t) => t.isDoneNow).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tasks'), bottom: const GradientAppBarUnderline()),
+      appBar: AppBar(
+        title: const Text('Tasks'),
+        bottom: const GradientAppBarUnderline(),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addTask(context, ref),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add task'),
       ),
-      body: SafeArea(
-        child: tasks.isEmpty
-            ? const EmptyState(
-                icon: Icons.checklist_rounded,
-                title: 'No tasks yet',
-                subtitle: 'Tap "Add task" to start a checklist you can clear as you go.',
-              )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
-                children: [
-                  for (final task in pending) _TaskRow(task: task),
-                  if (completed.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Completed',
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                          TextButton(
-                            onPressed: () => ref.read(taskControllerProvider.notifier).clearCompleted(),
-                            child: const Text('Clear completed'),
-                          ),
-                        ],
+      body: FloatingDotsBackground(
+        child: SafeArea(
+          child: tasks.isEmpty
+              ? const EmptyState(
+                  icon: Icons.checklist_rounded,
+                  title: 'No tasks yet',
+                  subtitle:
+                      'Tap "Add task" to start a checklist you can clear as you go.',
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+                  children: [
+                    for (final task in pending) _TaskRow(task: task),
+                    if (completed.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Completed',
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
+                            TextButton(
+                              onPressed: () => ref
+                                  .read(taskControllerProvider.notifier)
+                                  .clearCompleted(),
+                              child: const Text('Clear completed'),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    for (final task in completed) _TaskRow(task: task),
+                      for (final task in completed) _TaskRow(task: task),
+                    ],
                   ],
-                ],
-              ),
+                ),
+        ),
       ),
     );
   }
@@ -89,20 +101,35 @@ class TasksScreen extends ConsumerWidget {
                   controller: controller,
                   autofocus: true,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(hintText: 'What do you need to do?'),
+                  decoration: const InputDecoration(
+                    hintText: 'What do you need to do?',
+                  ),
                   onSubmitted: (value) => Navigator.pop(dialogContext, value),
                 ),
                 const SizedBox(height: 16),
-                Text('Repeat', style: Theme.of(dialogContext).textTheme.labelMedium),
+                Text(
+                  'Repeat',
+                  style: Theme.of(dialogContext).textTheme.labelMedium,
+                ),
                 const SizedBox(height: 8),
                 SegmentedButton<TaskRecurrence>(
                   segments: const [
-                    ButtonSegment(value: TaskRecurrence.none, label: Text('Once')),
-                    ButtonSegment(value: TaskRecurrence.daily, label: Text('Daily')),
-                    ButtonSegment(value: TaskRecurrence.weekly, label: Text('Weekly')),
+                    ButtonSegment(
+                      value: TaskRecurrence.none,
+                      label: Text('Once'),
+                    ),
+                    ButtonSegment(
+                      value: TaskRecurrence.daily,
+                      label: Text('Daily'),
+                    ),
+                    ButtonSegment(
+                      value: TaskRecurrence.weekly,
+                      label: Text('Weekly'),
+                    ),
                   ],
                   selected: {recurrence},
-                  onSelectionChanged: (value) => setDialogState(() => recurrence = value.first),
+                  onSelectionChanged: (value) =>
+                      setDialogState(() => recurrence = value.first),
                 ),
                 const SizedBox(height: 12),
                 SwitchListTile(
@@ -111,10 +138,12 @@ class TasksScreen extends ConsumerWidget {
                   subtitle: Text(
                     reminderEnabled && reminderAt != null
                         ? (recurrence == TaskRecurrence.none
-                            ? DateFormat('EEEE, MMM d, yyyy · h:mm a').format(reminderAt!)
-                            : recurrence == TaskRecurrence.daily
-                                ? 'Every day at ${DateFormat('h:mm a').format(reminderAt!)}'
-                                : 'Every ${DateFormat('EEEE').format(reminderAt!)} at ${DateFormat('h:mm a').format(reminderAt!)}')
+                              ? DateFormat(
+                                  'EEEE, MMM d, yyyy · h:mm a',
+                                ).format(reminderAt!)
+                              : recurrence == TaskRecurrence.daily
+                              ? 'Every day at ${DateFormat('h:mm a').format(reminderAt!)}'
+                              : 'Every ${DateFormat('EEEE').format(reminderAt!)} at ${DateFormat('h:mm a').format(reminderAt!)}')
                         : 'Get a notification for this task',
                   ),
                   value: reminderEnabled,
@@ -126,23 +155,36 @@ class TasksScreen extends ConsumerWidget {
                       });
                       return;
                     }
-                    final granted = await ref.read(notificationServiceProvider).requestPermission();
+                    final granted = await ref
+                        .read(notificationServiceProvider)
+                        .requestPermission();
                     if (!dialogContext.mounted) return;
                     if (!granted) {
-                      AppSnackbar.show(dialogContext, 'Allow notifications to get reminders', isError: true);
+                      AppSnackbar.show(
+                        dialogContext,
+                        'Allow notifications to get reminders',
+                        isError: true,
+                      );
                       return;
                     }
                     setDialogState(() {
                       reminderEnabled = true;
-                      reminderAt ??= DateTime.now().add(const Duration(hours: 1));
+                      reminderAt ??= DateTime.now().add(
+                        const Duration(hours: 1),
+                      );
                     });
                   },
                 ),
                 if (reminderEnabled)
                   OutlinedButton.icon(
                     onPressed: () async {
-                      final picked = await _pickReminderTime(dialogContext, reminderAt);
-                      if (picked != null) setDialogState(() => reminderAt = picked);
+                      final picked = await _pickReminderTime(
+                        dialogContext,
+                        reminderAt,
+                      );
+                      if (picked != null) {
+                        setDialogState(() => reminderAt = picked);
+                      }
                     },
                     icon: const Icon(Icons.notifications_active_outlined),
                     label: const Text('Set reminder time'),
@@ -151,7 +193,10 @@ class TasksScreen extends ConsumerWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, controller.text),
               child: const Text('Add'),
@@ -162,7 +207,9 @@ class TasksScreen extends ConsumerWidget {
     );
     final trimmed = result?.trim();
     if (trimmed != null && trimmed.isNotEmpty) {
-      await ref.read(taskControllerProvider.notifier).addTask(
+      await ref
+          .read(taskControllerProvider.notifier)
+          .addTask(
             trimmed,
             recurrence: recurrence,
             reminderAt: reminderEnabled ? reminderAt : null,
@@ -171,7 +218,10 @@ class TasksScreen extends ConsumerWidget {
   }
 }
 
-Future<DateTime?> _pickReminderTime(BuildContext context, DateTime? current) async {
+Future<DateTime?> _pickReminderTime(
+  BuildContext context,
+  DateTime? current,
+) async {
   final now = DateTime.now();
   final initial = current ?? now.add(const Duration(hours: 1));
   final pickedDate = await showDatePicker(
@@ -182,7 +232,10 @@ Future<DateTime?> _pickReminderTime(BuildContext context, DateTime? current) asy
   );
   if (pickedDate == null || !context.mounted) return null;
 
-  final pickedTime = await showTimePicker(context: context, initialTime: TimeOfDay.fromDateTime(initial));
+  final pickedTime = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(initial),
+  );
   if (!context.mounted) return null;
 
   return DateTime(
@@ -206,7 +259,8 @@ class _TaskRow extends ConsumerWidget {
     return Dismissible(
       key: ValueKey(task.id),
       direction: DismissDirection.endToStart,
-      onDismissed: (_) => ref.read(taskControllerProvider.notifier).removeTask(task.id),
+      onDismissed: (_) =>
+          ref.read(taskControllerProvider.notifier).removeTask(task.id),
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -215,7 +269,10 @@ class _TaskRow extends ConsumerWidget {
           color: scheme.errorContainer,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Icon(Icons.delete_outline_rounded, color: scheme.onErrorContainer),
+        child: Icon(
+          Icons.delete_outline_rounded,
+          color: scheme.onErrorContainer,
+        ),
       ),
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 4),
@@ -223,8 +280,9 @@ class _TaskRow extends ConsumerWidget {
           onTap: () => _editReminder(context, ref, task),
           leading: Checkbox(
             value: done,
-            onChanged: (value) =>
-                ref.read(taskControllerProvider.notifier).setDone(task.id, value ?? false),
+            onChanged: (value) => ref
+                .read(taskControllerProvider.notifier)
+                .setDone(task.id, value ?? false),
           ),
           title: Text(
             task.title,
@@ -238,8 +296,8 @@ class _TaskRow extends ConsumerWidget {
                   task.recurrence == TaskRecurrence.daily
                       ? 'Every day at ${DateFormat('h:mm a').format(task.reminderAt!)}'
                       : task.recurrence == TaskRecurrence.weekly
-                          ? 'Every ${DateFormat('EEEE, h:mm a').format(task.reminderAt!)}'
-                          : DateFormat('MMM d, h:mm a').format(task.reminderAt!),
+                      ? 'Every ${DateFormat('EEEE, h:mm a').format(task.reminderAt!)}'
+                      : DateFormat('MMM d, h:mm a').format(task.reminderAt!),
                   style: TextStyle(fontSize: 12, color: scheme.primary),
                 )
               : null,
@@ -247,7 +305,11 @@ class _TaskRow extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (task.reminderAt != null)
-                Icon(Icons.notifications_active_rounded, size: 16, color: scheme.primary),
+                Icon(
+                  Icons.notifications_active_rounded,
+                  size: 16,
+                  color: scheme.primary,
+                ),
               if (task.recurrence != TaskRecurrence.none) ...[
                 const SizedBox(width: 4),
                 Icon(
@@ -265,7 +327,11 @@ class _TaskRow extends ConsumerWidget {
     );
   }
 
-  Future<void> _editReminder(BuildContext context, WidgetRef ref, Task task) async {
+  Future<void> _editReminder(
+    BuildContext context,
+    WidgetRef ref,
+    Task task,
+  ) async {
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -275,7 +341,9 @@ class _TaskRow extends ConsumerWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.notifications_active_outlined),
-              title: Text(task.reminderAt == null ? 'Set reminder' : 'Change reminder'),
+              title: Text(
+                task.reminderAt == null ? 'Set reminder' : 'Change reminder',
+              ),
               onTap: () => Navigator.pop(sheetContext, 'set'),
             ),
             if (task.reminderAt != null)
@@ -291,18 +359,28 @@ class _TaskRow extends ConsumerWidget {
     if (choice == null || !context.mounted) return;
 
     if (choice == 'clear') {
-      await ref.read(taskControllerProvider.notifier).setReminder(task.id, null);
+      await ref
+          .read(taskControllerProvider.notifier)
+          .setReminder(task.id, null);
       return;
     }
 
-    final granted = await ref.read(notificationServiceProvider).requestPermission();
+    final granted = await ref
+        .read(notificationServiceProvider)
+        .requestPermission();
     if (!context.mounted) return;
     if (!granted) {
-      AppSnackbar.show(context, 'Allow notifications to get reminders', isError: true);
+      AppSnackbar.show(
+        context,
+        'Allow notifications to get reminders',
+        isError: true,
+      );
       return;
     }
     final picked = await _pickReminderTime(context, task.reminderAt);
     if (picked == null) return;
-    await ref.read(taskControllerProvider.notifier).setReminder(task.id, picked);
+    await ref
+        .read(taskControllerProvider.notifier)
+        .setReminder(task.id, picked);
   }
 }

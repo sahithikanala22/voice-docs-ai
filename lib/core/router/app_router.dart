@@ -13,6 +13,7 @@ import 'package:ai_voice_docs/features/settings/presentation/screens/language_pi
 import 'package:ai_voice_docs/features/settings/presentation/screens/settings_screen.dart';
 import 'package:ai_voice_docs/features/speech_to_text/presentation/screens/voice_to_text_screen.dart';
 import 'package:ai_voice_docs/features/tasks/presentation/screens/tasks_screen.dart';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/screens/voice_picker_screen.dart';
 import 'package:ai_voice_docs/navigation/root_scaffold.dart';
 
 const _lockRoutes = {'/signup', '/pin'};
@@ -78,6 +79,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return LanguagePickerScreen(
             title: extra['title'] as String? ?? 'Choose a language',
             selectedCode: extra['selectedCode'] as String? ?? AppConstants.defaultSourceLanguageCode,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/voice-picker',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? const {};
+          return VoicePickerScreen(
+            languageCode: extra['languageCode'] as String? ?? AppConstants.defaultSourceLanguageCode,
+            languageName: extra['languageName'] as String? ?? 'Voice',
+            selectedVoiceName: extra['selectedVoiceName'] as String?,
           );
         },
       ),
