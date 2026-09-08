@@ -16,6 +16,15 @@ import 'speech_provider.dart';
 /// whenever a session ends on its own (not because the caller asked to
 /// stop), stitching each chunk onto the running transcript so the caller
 /// only ever sees one continuous session.
+///
+/// Bluetooth headset mic support: the plugin tries this automatically, but
+/// only if `BLUETOOTH_CONNECT` (Android 12+) is already granted by the time
+/// its native `initialize()` runs — otherwise it silently falls back to the
+/// phone's built-in mic. Since [SpeechController.startListening] already
+/// pre-grants `RECORD_AUDIO` before calling this class's [initialize], the
+/// plugin's own internal Bluetooth-permission request never fires (it's
+/// gated behind "if audio permission isn't already granted"), so that
+/// controller requests `bluetoothConnect` itself first — see its comment.
 class OnDeviceSpeechProvider implements SpeechProvider {
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _initialized = false;
@@ -42,7 +51,9 @@ class OnDeviceSpeechProvider implements SpeechProvider {
   }
 
   void _handleNativeError(SpeechRecognitionError error) {
-    final isSilencePause = error.errorMsg == 'error_no_match' || error.errorMsg == 'error_speech_timeout';
+    final isSilencePause =
+        error.errorMsg == 'error_no_match' ||
+        error.errorMsg == 'error_speech_timeout';
     if (isSilencePause && !_stopRequested) {
       _listenOnce();
       return;
@@ -96,12 +107,14 @@ class OnDeviceSpeechProvider implements SpeechProvider {
 
     final normalizedTarget = normalize(appLanguageHint);
     for (final locale in _deviceLocales) {
-      if (normalize(locale.localeId) == normalizedTarget) return locale.localeId;
+      if (normalize(locale.localeId) == normalizedTarget)
+        return locale.localeId;
     }
 
     final targetPrimary = primarySubtag(appLanguageHint);
     for (final locale in _deviceLocales) {
-      if (primarySubtag(locale.localeId) == targetPrimary) return locale.localeId;
+      if (primarySubtag(locale.localeId) == targetPrimary)
+        return locale.localeId;
     }
 
     return appLanguageHint;
@@ -144,7 +157,9 @@ class OnDeviceSpeechProvider implements SpeechProvider {
         final segment = result.recognizedWords;
         final combined = _committedTranscript.isEmpty
             ? segment
-            : (segment.isEmpty ? _committedTranscript : '$_committedTranscript $segment');
+            : (segment.isEmpty
+                  ? _committedTranscript
+                  : '$_committedTranscript $segment');
 
         if (!result.finalResult) {
           _currentOnResult?.call(combined, false);

@@ -6,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/utils/export_filename.dart';
 
 import 'history_item.dart';
 
@@ -58,17 +59,21 @@ class HistoryPdfGenerator {
     );
 
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/ai_voice_docs_${item.id}.pdf');
+    final file = File('${dir.path}/voicedocsai_${exportFilenameStamp()}.pdf');
     await file.writeAsBytes(await doc.save());
     return file;
   }
 
   /// Renders every item in [items] (oldest first) as one multi-page digest —
   /// used for "export this month"/"export this folder" instead of sharing
-  /// entries one at a time. [title] and [fileSlug] identify the digest (e.g.
-  /// "August 2026" / "august_2026").
-  Future<File> generateDigest(List<HistoryItem> items, {required String title, required String fileSlug}) async {
-    final sorted = items.toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+  /// entries one at a time. [title] is the digest's heading (e.g. "August
+  /// 2026").
+  Future<File> generateDigest(
+    List<HistoryItem> items, {
+    required String title,
+  }) async {
+    final sorted = items.toList()
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     final doc = pw.Document();
     doc.addPage(
@@ -79,11 +84,20 @@ class HistoryPdfGenerator {
             ? pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text(title, style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  pw.Text(
+                    title,
+                    style: pw.TextStyle(
+                      fontSize: 22,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
                   pw.SizedBox(height: 4),
                   pw.Text(
                     '${sorted.length} ${sorted.length == 1 ? 'entry' : 'entries'}',
-                    style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey600),
+                    style: const pw.TextStyle(
+                      fontSize: 11,
+                      color: PdfColors.grey600,
+                    ),
                   ),
                   pw.SizedBox(height: 16),
                 ],
@@ -106,7 +120,7 @@ class HistoryPdfGenerator {
     );
 
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/ai_voice_docs_digest_$fileSlug.pdf');
+    final file = File('${dir.path}/voicedocsai_${exportFilenameStamp()}.pdf');
     await file.writeAsBytes(await doc.save());
     return file;
   }

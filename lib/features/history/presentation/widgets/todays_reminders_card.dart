@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/entry_summary.dart';
 import '../providers/history_providers.dart';
 import 'history_detail_sheet.dart';
 
@@ -20,8 +21,7 @@ class TodaysRemindersCard extends ConsumerWidget {
     final todaysReminders = items.where((e) {
       final reminderAt = e.reminderAt;
       return reminderAt != null && DateUtils.isSameDay(reminderAt, today);
-    }).toList()
-      ..sort((a, b) => a.reminderAt!.compareTo(b.reminderAt!));
+    }).toList()..sort((a, b) => a.reminderAt!.compareTo(b.reminderAt!));
 
     if (todaysReminders.isEmpty) return const SizedBox.shrink();
 
@@ -35,7 +35,10 @@ class TodaysRemindersCard extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [scheme.primary.withValues(alpha: 0.16), scheme.tertiary.withValues(alpha: 0.16)],
+          colors: [
+            scheme.primary.withValues(alpha: 0.16),
+            scheme.tertiary.withValues(alpha: 0.16),
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -44,11 +47,17 @@ class TodaysRemindersCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.notifications_active_rounded, size: 18, color: scheme.primary),
+              Icon(
+                Icons.notifications_active_rounded,
+                size: 18,
+                color: scheme.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 "Today's reminders",
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(color: scheme.primary),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge?.copyWith(color: scheme.primary),
               ),
             ],
           ),
@@ -66,18 +75,22 @@ class TodaysRemindersCard extends ConsumerWidget {
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: item.reminderAt!.isBefore(now) ? scheme.onSurfaceVariant : scheme.primary,
+                        color: item.reminderAt!.isBefore(now)
+                            ? scheme.onSurfaceVariant
+                            : scheme.primary,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Text(
                       DateFormat('h:mm a').format(item.reminderAt!),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        item.sourceText,
+                        entrySummary(item.sourceText),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyMedium,

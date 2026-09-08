@@ -20,7 +20,9 @@ class TaskLocalDataSource {
     if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((e) => Task.fromJson(e as Map<String, dynamic>)).toList()
+      return decoded
+          .map((e) => Task.fromJson(e as Map<String, dynamic>))
+          .toList()
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     } catch (_) {
       throw const StorageException('Saved tasks could not be read.');

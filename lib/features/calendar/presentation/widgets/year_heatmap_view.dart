@@ -6,7 +6,12 @@ import 'package:intl/intl.dart';
 /// that day. Lets you spot journaling consistency (or gaps) at a glance in
 /// a way a single month grid can't.
 class YearHeatmapView extends StatelessWidget {
-  const YearHeatmapView({super.key, required this.year, required this.countsForDay, required this.onDaySelected});
+  const YearHeatmapView({
+    super.key,
+    required this.year,
+    required this.countsForDay,
+    required this.onDaySelected,
+  });
 
   final int year;
   final int Function(DateTime day) countsForDay;
@@ -32,7 +37,9 @@ class YearHeatmapView extends StatelessWidget {
                 width: 36,
                 child: Text(
                   DateFormat('MMM').format(DateTime(year, month)),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               Expanded(
@@ -41,27 +48,32 @@ class YearHeatmapView extends StatelessWidget {
                   runSpacing: 3,
                   children: [
                     for (var d = 1; d <= daysInMonth; d++)
-                      Builder(builder: (context) {
-                        final day = DateTime(year, month, d);
-                        final isFuture = day.isAfter(today);
-                        final count = isFuture ? 0 : countsForDay(day);
-                        return GestureDetector(
-                          onTap: isFuture ? null : () => onDaySelected(day),
-                          child: Container(
-                            width: 11,
-                            height: 11,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(2.5),
-                              color: isFuture
-                                  ? scheme.surfaceContainerHighest
-                                  : count == 0
-                                      ? scheme.surfaceContainerHigh
-                                      : scheme.primary
-                                          .withValues(alpha: (0.28 + (count.clamp(0, 4) * 0.18)).clamp(0.28, 1.0)),
+                      Builder(
+                        builder: (context) {
+                          final day = DateTime(year, month, d);
+                          final isFuture = day.isAfter(today);
+                          final count = isFuture ? 0 : countsForDay(day);
+                          return GestureDetector(
+                            onTap: isFuture ? null : () => onDaySelected(day),
+                            child: Container(
+                              width: 11,
+                              height: 11,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(2.5),
+                                color: isFuture
+                                    ? scheme.surfaceContainerHighest
+                                    : count == 0
+                                    ? scheme.surfaceContainerHigh
+                                    : scheme.primary.withValues(
+                                        alpha:
+                                            (0.28 + (count.clamp(0, 4) * 0.18))
+                                                .clamp(0.28, 1.0),
+                                      ),
+                              ),
                             ),
-                          ),
-                        );
-                      }),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),

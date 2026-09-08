@@ -9,14 +9,16 @@ class Failure {
   final FailureType type;
   final String message;
 
-  factory Failure.permissionDenied([String message = 'Permission was denied.']) =>
-      Failure(FailureType.permissionDenied, message);
+  factory Failure.permissionDenied([
+    String message = 'Permission was denied.',
+  ]) => Failure(FailureType.permissionDenied, message);
 
   factory Failure.network([String message = 'A network error occurred.']) =>
       Failure(FailureType.network, message);
 
-  factory Failure.notAvailable([String message = 'This feature is not available on this device.']) =>
-      Failure(FailureType.notAvailable, message);
+  factory Failure.notAvailable([
+    String message = 'This feature is not available on this device.',
+  ]) => Failure(FailureType.notAvailable, message);
 
   factory Failure.unknown([String message = 'Something went wrong.']) =>
       Failure(FailureType.unknown, message);

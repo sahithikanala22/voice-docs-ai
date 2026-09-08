@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
+import 'package:ai_voice_docs/features/backup/presentation/providers/backup_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
@@ -24,6 +25,11 @@ class PinEntryScreen extends ConsumerStatefulWidget {
 class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   final _pinController = TextEditingController();
 
+  /// Guards the auto-prompt so it fires once per time this screen appears,
+  /// not on every rebuild (`build()` re-runs a lot from `ref.watch`) — the
+  /// button below still lets the user retry biometrics manually any time.
+  bool _biometricAutoPromptSent = false;
+
   @override
   void dispose() {
     _pinController.dispose();
@@ -34,6 +40,9 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockControllerProvider).value;
     final name = lockState?.account?.name ?? '';
+    final biometricEnabled =
+        ref.watch(settingsControllerProvider).value?.biometricUnlockEnabled ??
+        false;
 
     ref.listen(appLockControllerProvider, (previous, next) {
       final error = next.value?.errorMessage;
@@ -43,8 +52,15 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
       }
     });
 
+    if (biometricEnabled && !_biometricAutoPromptSent) {
+      _biometricAutoPromptSent = true;
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _tryBiometricUnlock(),
+      );
+    }
+
     return Scaffold(
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -92,6 +108,14 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                   ),
                   const SizedBox(height: 16),
                   FilledButton(onPressed: _submit, child: const Text('Unlock')),
+                  if (biometricEnabled) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _tryBiometricUnlock,
+                      icon: const Icon(Icons.fingerprint_rounded),
+                      label: const Text('Unlock with biometrics'),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => _confirmReset(context),
@@ -111,6 +135,13 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     ref.read(appLockControllerProvider.notifier).unlock(_pinController.text);
   }
 
+  Future<void> _tryBiometricUnlock() async {
+    final success = await ref.read(biometricAuthServiceProvider).authenticate();
+    if (success && mounted) {
+      ref.read(appLockControllerProvider.notifier).unlockWithBiometrics();
+    }
+  }
+
   Future<void> _confirmReset(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -118,8 +149,9 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
         title: const Text('Reset app data?'),
         content: const Text(
           'There\'s no way to recover a forgotten PIN — it\'s never sent anywhere to verify '
-          'against. Resetting deletes ALL saved history, folders, and settings from this '
-          'device, then lets you set up a new PIN. This cannot be undone.',
+          'against. Resetting requires setting up a new PIN, and your name/profile will need '
+          're-entering, but your history, tasks, and folders will be restored automatically '
+          'right after you do.',
         ),
         actions: [
           TextButton(
@@ -137,6 +169,10 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
       ),
     );
     if (confirmed == true) {
+      // Snapshot everything to a file first — SharedPreferences.clear()
+      // below only empties the prefs store, so this survives the wipe and
+      // lets SignupScreen hand it all back once a new PIN is set up.
+      await ref.read(backupServiceProvider).saveAutoBackupBeforeReset();
       await ref.read(sharedPreferencesProvider).clear();
       ref.invalidate(historyControllerProvider);
       ref.invalidate(folderControllerProvider);

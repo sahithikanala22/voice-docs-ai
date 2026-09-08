@@ -19,16 +19,19 @@ class HistoryItem with _$HistoryItem {
     required String sourceText,
     required String sourceLanguageCode,
     required DateTime timestamp,
+
     /// Which [Folder] this entry is filed under, if any — null means
     /// unfiled. Purely organizational, set from whatever folder was
     /// "current" at save time (see `AppSettings.currentFolderId`).
     String? folderId,
+
     /// When set, a local notification is scheduled for this moment — see
     /// `NotificationService.scheduleReminder`. Null means no reminder.
     DateTime? reminderAt,
   }) = _HistoryItem;
 
-  factory HistoryItem.fromJson(Map<String, dynamic> json) => _$HistoryItemFromJson(json);
+  factory HistoryItem.fromJson(Map<String, dynamic> json) =>
+      _$HistoryItemFromJson(json);
 
   /// [timestamp] defaults to now — pass an explicit one for manually
   /// backfilled entries (see the Calendar tab's "Add entry" sheet), which

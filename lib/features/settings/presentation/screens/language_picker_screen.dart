@@ -10,7 +10,11 @@ import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 /// settings). Expects `extra: {'title': String, 'selectedCode': String}` and
 /// pops with the chosen [Language].
 class LanguagePickerScreen extends StatefulWidget {
-  const LanguagePickerScreen({super.key, required this.title, required this.selectedCode});
+  const LanguagePickerScreen({
+    super.key,
+    required this.title,
+    required this.selectedCode,
+  });
 
   final String title;
   final String selectedCode;
@@ -29,9 +33,12 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
     final filtered = query.isEmpty
         ? kSupportedLanguages
         : kSupportedLanguages
-            .where((l) =>
-                l.name.toLowerCase().contains(query) || l.nativeName.toLowerCase().contains(query))
-            .toList();
+              .where(
+                (l) =>
+                    l.name.toLowerCase().contains(query) ||
+                    l.nativeName.toLowerCase().contains(query),
+              )
+              .toList();
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
@@ -52,7 +59,10 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
               const SizedBox(height: 12),
               Expanded(
                 child: filtered.isEmpty
-                    ? const EmptyState(icon: Icons.language_rounded, title: 'No languages found')
+                    ? const EmptyState(
+                        icon: Icons.language_rounded,
+                        title: 'No languages found',
+                      )
                     : ListView.separated(
                         itemCount: filtered.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 4),
@@ -62,7 +72,8 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
                           return _LanguageRow(
                             language: language,
                             selected: selected,
-                            onTap: () => setState(() => _selectedCode = language.code),
+                            onTap: () =>
+                                setState(() => _selectedCode = language.code),
                           );
                         },
                       ),
@@ -72,7 +83,8 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: () => Navigator.pop(context, languageByCode(_selectedCode)),
+                    onPressed: () =>
+                        Navigator.pop(context, languageByCode(_selectedCode)),
                     child: const Text('Save'),
                   ),
                 ),
@@ -86,7 +98,11 @@ class _LanguagePickerScreenState extends State<LanguagePickerScreen> {
 }
 
 class _LanguageRow extends StatelessWidget {
-  const _LanguageRow({required this.language, required this.selected, required this.onTap});
+  const _LanguageRow({
+    required this.language,
+    required this.selected,
+    required this.onTap,
+  });
 
   final Language language;
   final bool selected;
@@ -106,22 +122,34 @@ class _LanguageRow extends StatelessWidget {
           child: Row(
             children: [
               ClipOval(
-                child: Flag.fromString(language.flagCountryCode, height: 28, width: 28, fit: BoxFit.cover),
+                child: Flag.fromString(
+                  language.flagCountryCode,
+                  height: 28,
+                  width: 28,
+                  fit: BoxFit.cover,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(language.name, style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      language.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     Text(
                       language.nativeName,
-                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               ),
-              if (selected) Icon(Icons.check_circle_rounded, color: scheme.primary),
+              if (selected)
+                Icon(Icons.check_circle_rounded, color: scheme.primary),
             ],
           ),
         ),

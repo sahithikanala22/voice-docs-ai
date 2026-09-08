@@ -21,7 +21,9 @@ Future<void> shareGeneratedFile(
   try {
     final file = await generate();
     if (!context.mounted) return;
-    await Share.shareXFiles([XFile(file.path)], text: 'Shared from Voice Docs AI');
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Shared from Voice Docs AI');
   } catch (_) {
     if (context.mounted) {
       AppSnackbar.show(context, failureMessage, isError: true);
@@ -80,7 +82,6 @@ Future<void> showDigestShareFormatSheet(
   BuildContext context,
   List<HistoryItem> items, {
   required String title,
-  required String fileSlug,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -97,7 +98,8 @@ Future<void> showDigestShareFormatSheet(
                 Navigator.pop(sheetContext);
                 shareGeneratedFile(
                   context,
-                  () => HistoryPdfGenerator().generateDigest(items, title: title, fileSlug: fileSlug),
+                  () =>
+                      HistoryPdfGenerator().generateDigest(items, title: title),
                   'Could not create the PDF.',
                 );
               },
@@ -109,7 +111,10 @@ Future<void> showDigestShareFormatSheet(
                 Navigator.pop(sheetContext);
                 shareGeneratedFile(
                   context,
-                  () => HistoryWordGenerator().generateDigest(items, title: title, fileSlug: fileSlug),
+                  () => HistoryWordGenerator().generateDigest(
+                    items,
+                    title: title,
+                  ),
                   'Could not create the Word document.',
                 );
               },

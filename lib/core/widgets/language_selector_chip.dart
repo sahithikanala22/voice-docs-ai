@@ -37,9 +37,16 @@ class LanguageSelectorChip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(language.name, style: Theme.of(context).textTheme.labelLarge),
+              Text(
+                language.name,
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
               const SizedBox(width: 4),
-              Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),

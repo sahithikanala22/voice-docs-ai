@@ -43,7 +43,9 @@ class FolderController extends AsyncNotifier<List<Folder>> {
   }
 
   Future<void> updateFolder(String id, {String? name, int? colorIndex}) async {
-    await ref.read(folderRepositoryProvider).update(id, name: name, colorIndex: colorIndex);
+    await ref
+        .read(folderRepositoryProvider)
+        .update(id, name: name, colorIndex: colorIndex);
     state = AsyncData(await ref.read(folderRepositoryProvider).getAll());
   }
 
@@ -72,5 +74,6 @@ String folderNameFor(List<Folder>? folders, String? folderId) {
 Color folderColorFor(List<Folder>? folders, String? folderId) {
   final folder = folderByIdOrNull(folders, folderId);
   if (folder == null) return Colors.grey;
-  return AppTheme.folderPalette[folder.colorIndex % AppTheme.folderPalette.length];
+  return AppTheme.folderPalette[folder.colorIndex %
+      AppTheme.folderPalette.length];
 }

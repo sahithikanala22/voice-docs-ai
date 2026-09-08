@@ -15,7 +15,8 @@ class TtsRepositoryImpl implements TtsRepository {
   Future<void> stop() => _provider.stop();
 
   @override
-  Future<List<TtsVoiceOption>> getVoices(String languageCode) => _provider.getVoices(languageCode);
+  Future<List<TtsVoiceOption>> getVoices(String languageCode) =>
+      _provider.getVoices(languageCode);
 
   @override
   void onStart(void Function() callback) => _provider.onStart(callback);
@@ -24,5 +25,6 @@ class TtsRepositoryImpl implements TtsRepository {
   void onComplete(void Function() callback) => _provider.onComplete(callback);
 
   @override
-  void onError(void Function(String message) callback) => _provider.onError(callback);
+  void onError(void Function(String message) callback) =>
+      _provider.onError(callback);
 }

@@ -15,7 +15,13 @@ class AppLockAccount with _$AppLockAccount {
     required String pinHash,
     DateTime? dob,
     String? email,
+
+    /// Absolute path to a copy of the picture stored in the app's own
+    /// documents directory — never a raw gallery/content URI, since those
+    /// can stop resolving after the app restarts or the source file moves.
+    String? avatarPath,
   }) = _AppLockAccount;
 
-  factory AppLockAccount.fromJson(Map<String, dynamic> json) => _$AppLockAccountFromJson(json);
+  factory AppLockAccount.fromJson(Map<String, dynamic> json) =>
+      _$AppLockAccountFromJson(json);
 }

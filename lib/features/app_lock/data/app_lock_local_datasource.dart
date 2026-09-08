@@ -22,7 +22,10 @@ class AppLockLocalDataSource {
   }
 
   Future<void> write(AppLockAccount account) async {
-    await _prefs.setString(PrefsKeys.appLockAccount, jsonEncode(account.toJson()));
+    await _prefs.setString(
+      PrefsKeys.appLockAccount,
+      jsonEncode(account.toJson()),
+    );
   }
 
   Future<void> clear() async {

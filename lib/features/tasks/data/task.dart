@@ -32,6 +32,7 @@ class Task with _$Task {
     @Default(false) bool isDone,
     @Default(TaskRecurrence.none) TaskRecurrence recurrence,
     DateTime? lastCompletedDate,
+
     /// When set, a local notification is scheduled for this moment — see
     /// `NotificationService.scheduleReminder`. For a recurring task this is
     /// the anchor whose time-of-day (daily) or weekday+time (weekly) the
@@ -44,14 +45,17 @@ class Task with _$Task {
 
   factory Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);
 
-  factory Task.create(String title, {TaskRecurrence recurrence = TaskRecurrence.none, DateTime? reminderAt}) =>
-      Task(
-        id: _nextId(),
-        title: title,
-        createdAt: DateTime.now(),
-        recurrence: recurrence,
-        reminderAt: reminderAt,
-      );
+  factory Task.create(
+    String title, {
+    TaskRecurrence recurrence = TaskRecurrence.none,
+    DateTime? reminderAt,
+  }) => Task(
+    id: _nextId(),
+    title: title,
+    createdAt: DateTime.now(),
+    recurrence: recurrence,
+    reminderAt: reminderAt,
+  );
 
   /// Whether this task should currently render as checked. For a one-off
   /// task that's just [isDone]; for a recurring task it's whether
@@ -65,7 +69,9 @@ class Task with _$Task {
     final lastDay = DateUtils.dateOnly(last);
     return switch (recurrence) {
       TaskRecurrence.daily => DateUtils.isSameDay(lastDay, today),
-      TaskRecurrence.weekly => !lastDay.isBefore(today.subtract(const Duration(days: 6))),
+      TaskRecurrence.weekly => !lastDay.isBefore(
+        today.subtract(const Duration(days: 6)),
+      ),
       TaskRecurrence.none => isDone,
     };
   }

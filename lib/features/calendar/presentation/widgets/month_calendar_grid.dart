@@ -43,10 +43,10 @@ class MonthCalendarGrid extends StatelessWidget {
                   child: Text(
                     label,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.4,
-                        ),
+                      color: scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                    ),
                   ),
                 ),
               ),
@@ -57,81 +57,100 @@ class MonthCalendarGrid extends StatelessWidget {
           Row(
             children: [
               for (var weekday = 0; weekday < 7; weekday++) ...[
-                Builder(builder: (context) {
-                  final day = gridStart.add(Duration(days: week * 7 + weekday));
-                  final inMonth = day.month == month.month;
-                  final isToday = DateUtils.isSameDay(day, today);
-                  final isSelected = DateUtils.isSameDay(day, selectedDay);
-                  final dots = dotsForDay(day);
+                Builder(
+                  builder: (context) {
+                    final day = gridStart.add(
+                      Duration(days: week * 7 + weekday),
+                    );
+                    final inMonth = day.month == month.month;
+                    final isToday = DateUtils.isSameDay(day, today);
+                    final isSelected = DateUtils.isSameDay(day, selectedDay);
+                    final dots = dotsForDay(day);
 
-                  return Expanded(
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(100),
-                        onTap: () => onDaySelected(day),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          margin: const EdgeInsets.all(2.5),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: isSelected ? AppTheme.heroGradient(scheme) : null,
-                            border: !isSelected && isToday
-                                ? Border.all(color: scheme.primary, width: 1.6)
-                                : null,
-                            boxShadow: isSelected
-                                ? [
-                                    BoxShadow(
-                                      color: scheme.primary.withValues(alpha: 0.4),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ]
-                                : null,
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '${day.day}',
-                                style: TextStyle(
-                                  fontWeight: isToday || isSelected ? FontWeight.w800 : FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : !inMonth
-                                          ? scheme.onSurfaceVariant.withValues(alpha: 0.35)
-                                          : isToday
-                                              ? scheme.primary
-                                              : scheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              SizedBox(
-                                height: 5,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    for (final color in dots.take(3))
-                                      Container(
-                                        width: 4,
-                                        height: 4,
-                                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: isSelected ? Colors.white : color,
+                    return Expanded(
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(100),
+                          onTap: () => onDaySelected(day),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            margin: const EdgeInsets.all(2.5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: isSelected
+                                  ? AppTheme.heroGradient(scheme)
+                                  : null,
+                              border: !isSelected && isToday
+                                  ? Border.all(
+                                      color: scheme.primary,
+                                      width: 1.6,
+                                    )
+                                  : null,
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: scheme.primary.withValues(
+                                          alpha: 0.4,
                                         ),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
                                       ),
-                                  ],
+                                    ]
+                                  : null,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  '${day.day}',
+                                  style: TextStyle(
+                                    fontWeight: isToday || isSelected
+                                        ? FontWeight.w800
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : !inMonth
+                                        ? scheme.onSurfaceVariant.withValues(
+                                            alpha: 0.35,
+                                          )
+                                        : isToday
+                                        ? scheme.primary
+                                        : scheme.onSurface,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 2),
+                                SizedBox(
+                                  height: 5,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      for (final color in dots.take(3))
+                                        Container(
+                                          width: 4,
+                                          height: 4,
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : color,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  },
+                ),
               ],
             ],
           ),

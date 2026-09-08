@@ -32,10 +32,12 @@ class DeviceTtsProvider implements TtsProvider {
       final result = await _tts.getVoices as List;
       _deviceVoices = result
           .whereType<Map>()
-          .map((v) => TtsVoiceOption(
-                name: v['name']?.toString() ?? '',
-                locale: v['locale']?.toString() ?? '',
-              ))
+          .map(
+            (v) => TtsVoiceOption(
+              name: v['name']?.toString() ?? '',
+              locale: v['locale']?.toString() ?? '',
+            ),
+          )
           .where((v) => v.name.isNotEmpty && v.locale.isNotEmpty)
           .toList();
     } catch (_) {
@@ -77,15 +79,23 @@ class DeviceTtsProvider implements TtsProvider {
     String primarySubtag(String code) => normalize(code).split('-').first;
 
     final normalizedTarget = normalize(languageCode);
-    final exact = voices.where((v) => normalize(v.locale) == normalizedTarget).toList();
+    final exact = voices
+        .where((v) => normalize(v.locale) == normalizedTarget)
+        .toList();
     if (exact.isNotEmpty) return exact;
 
     final targetPrimary = primarySubtag(languageCode);
-    return voices.where((v) => primarySubtag(v.locale) == targetPrimary).toList();
+    return voices
+        .where((v) => primarySubtag(v.locale) == targetPrimary)
+        .toList();
   }
 
   @override
-  Future<void> speak(String text, String languageCode, {String? voiceName}) async {
+  Future<void> speak(
+    String text,
+    String languageCode, {
+    String? voiceName,
+  }) async {
     final deviceLanguages = await _loadDeviceLanguages();
     final resolvedLanguage = _resolveLanguage(languageCode, deviceLanguages);
     await _tts.setLanguage(resolvedLanguage);
@@ -94,7 +104,10 @@ class DeviceTtsProvider implements TtsProvider {
       final voices = await getVoices(languageCode);
       final match = voices.where((v) => v.name == voiceName).toList();
       if (match.isNotEmpty) {
-        await _tts.setVoice({'name': match.first.name, 'locale': match.first.locale});
+        await _tts.setVoice({
+          'name': match.first.name,
+          'locale': match.first.locale,
+        });
       }
     }
 
@@ -108,7 +121,8 @@ class DeviceTtsProvider implements TtsProvider {
   void onStart(void Function() callback) => _tts.setStartHandler(callback);
 
   @override
-  void onComplete(void Function() callback) => _tts.setCompletionHandler(callback);
+  void onComplete(void Function() callback) =>
+      _tts.setCompletionHandler(callback);
 
   @override
   void onError(void Function(String message) callback) {

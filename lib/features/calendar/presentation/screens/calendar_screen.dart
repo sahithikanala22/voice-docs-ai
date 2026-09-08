@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_filter_chip.dart';
@@ -61,13 +61,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ],
         bottom: const GradientAppBarUnderline(),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showAddEntrySheet(context, initialDate: _selectedDay),
-        tooltip: 'Add entry for this day',
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add entry'),
-      ),
-      body: FloatingDotsBackground(
+      floatingActionButton:
+          DateUtils.dateOnly(
+            _selectedDay,
+          ).isAfter(DateUtils.dateOnly(DateTime.now()))
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () =>
+                  showAddEntrySheet(context, initialDate: _selectedDay),
+              tooltip: 'Add entry for this day',
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add entry'),
+            ),
+      body: PaperBackground(
         child: SafeArea(
           child: historyAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -106,6 +112,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   entriesByDay[_selectedDay] ?? const <HistoryItem>[];
               final today = DateUtils.dateOnly(DateTime.now());
               final isToday = DateUtils.isSameDay(_selectedDay, today);
+              // Entries capture what actually happened, so only today and
+              // past days can get a new one — future days are browsable
+              // (e.g. to check reminders) but not add targets.
+              final canAddToSelectedDay = !_selectedDay.isAfter(today);
               final isCurrentMonth =
                   _visibleMonth.year == today.year &&
                   _visibleMonth.month == today.month;
@@ -257,9 +267,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               title: DateFormat(
                                 'MMMM yyyy',
                               ).format(_visibleMonth),
-                              fileSlug: DateFormat(
-                                'yyyy_MM',
-                              ).format(_visibleMonth),
                             ),
                             icon: const Icon(Icons.ios_share_rounded, size: 16),
                             label: const Text('Export month'),
@@ -383,25 +390,29 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                       child: selectedDayEntries.isEmpty
                           ? Column(
                               children: [
-                                const Expanded(
+                                Expanded(
                                   child: EmptyState(
                                     icon: Icons.event_note_outlined,
                                     title: 'No entries this day',
-                                    subtitle:
-                                        'Voice transcripts saved on this day will show up here.',
+                                    subtitle: canAddToSelectedDay
+                                        ? 'Voice transcripts saved on this day will show up here.'
+                                        : 'This day hasn\'t happened yet — you can add an entry once it does.',
                                   ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: TextButton.icon(
-                                    onPressed: () => showAddEntrySheet(
-                                      context,
-                                      initialDate: _selectedDay,
+                                if (canAddToSelectedDay)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 16),
+                                    child: TextButton.icon(
+                                      onPressed: () => showAddEntrySheet(
+                                        context,
+                                        initialDate: _selectedDay,
+                                      ),
+                                      icon: const Icon(Icons.add_rounded),
+                                      label: const Text(
+                                        'Add entry for this day',
+                                      ),
                                     ),
-                                    icon: const Icon(Icons.add_rounded),
-                                    label: const Text('Add entry for this day'),
                                   ),
-                                ),
                               ],
                             )
                           : ListView.builder(

@@ -9,7 +9,11 @@ import '../theme/app_theme.dart';
 /// little more alive without distracting from actually entering the PIN.
 /// Pure [CustomPainter] animation, no extra dependencies.
 class FloatingDotsBackground extends StatefulWidget {
-  const FloatingDotsBackground({super.key, required this.child, this.dotCount = 26});
+  const FloatingDotsBackground({
+    super.key,
+    required this.child,
+    this.dotCount = 26,
+  });
 
   final Widget child;
   final int dotCount;
@@ -20,8 +24,10 @@ class FloatingDotsBackground extends StatefulWidget {
 
 class _FloatingDotsBackgroundState extends State<FloatingDotsBackground>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: const Duration(seconds: 50))..repeat();
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 50),
+  )..repeat();
   late final List<_Dot> _dots = _generateDots(widget.dotCount);
 
   List<_Dot> _generateDots(int count) {
@@ -55,7 +61,8 @@ class _FloatingDotsBackgroundState extends State<FloatingDotsBackground>
         Positioned.fill(
           child: AnimatedBuilder(
             animation: _controller,
-            builder: (context, _) => CustomPaint(painter: _DotsPainter(_dots, _controller.value)),
+            builder: (context, _) =>
+                CustomPaint(painter: _DotsPainter(_dots, _controller.value)),
           ),
         ),
         widget.child,
@@ -65,7 +72,13 @@ class _FloatingDotsBackgroundState extends State<FloatingDotsBackground>
 }
 
 class _Dot {
-  _Dot({required this.origin, required this.drift, required this.radius, required this.color, required this.phase});
+  _Dot({
+    required this.origin,
+    required this.drift,
+    required this.radius,
+    required this.color,
+    required this.phase,
+  });
 
   final Offset origin;
   final Offset drift;
@@ -97,5 +110,6 @@ class _DotsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DotsPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(covariant _DotsPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

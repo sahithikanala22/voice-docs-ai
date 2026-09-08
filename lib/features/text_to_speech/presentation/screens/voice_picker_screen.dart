@@ -34,7 +34,9 @@ class _VoicePickerScreenState extends ConsumerState<VoicePickerScreen> {
   @override
   void initState() {
     super.initState();
-    _voicesFuture = ref.read(ttsControllerProvider.notifier).getVoices(widget.languageCode);
+    _voicesFuture = ref
+        .read(ttsControllerProvider.notifier)
+        .getVoices(widget.languageCode);
   }
 
   @override
@@ -55,7 +57,8 @@ class _VoicePickerScreenState extends ConsumerState<VoicePickerScreen> {
               children: [
                 _VoiceRow(
                   label: 'Device default',
-                  subtitle: 'Whatever your phone normally uses for this language',
+                  subtitle:
+                      'Whatever your phone normally uses for this language',
                   selected: widget.selectedVoiceName == null,
                   onTap: () => Navigator.pop(context, ''),
                 ),
@@ -65,7 +68,8 @@ class _VoicePickerScreenState extends ConsumerState<VoicePickerScreen> {
                     child: EmptyState(
                       icon: Icons.record_voice_over_outlined,
                       title: 'No alternate voices found',
-                      subtitle: 'Your device only offers one voice for this language.',
+                      subtitle:
+                          'Your device only offers one voice for this language.',
                     ),
                   )
                 else
@@ -104,7 +108,11 @@ class _VoicePickerScreenState extends ConsumerState<VoicePickerScreen> {
     setState(() => _previewingVoiceName = voice.name);
     await ref
         .read(ttsRepositoryProvider)
-        .speak('This is what I sound like.', widget.languageCode, voiceName: voice.name);
+        .speak(
+          'This is what I sound like.',
+          widget.languageCode,
+          voiceName: voice.name,
+        );
     if (mounted) setState(() => _previewingVoiceName = null);
   }
 
@@ -147,13 +155,24 @@ class _VoiceRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: Theme.of(context).textTheme.titleMedium, overflow: TextOverflow.ellipsis),
-                    Text(subtitle, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.titleMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
               ?trailing,
-              if (selected) Icon(Icons.check_circle_rounded, color: scheme.primary),
+              if (selected)
+                Icon(Icons.check_circle_rounded, color: scheme.primary),
             ],
           ),
         ),

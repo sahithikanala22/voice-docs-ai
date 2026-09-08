@@ -16,6 +16,10 @@ class AiVoiceDocsApp extends ConsumerWidget {
     final settings = ref.watch(settingsControllerProvider).value;
     final themeMode = settings?.themeMode ?? ThemeMode.system;
     final useDynamicColor = settings?.useDynamicColor ?? false;
+    final accentColor = settings?.accentColorValue == null
+        ? null
+        : Color(settings!.accentColorValue!);
+    final fontFamily = settings?.fontFamily;
 
     // Wait for the persisted app-lock account to load once before building
     // the router, so the redirect logic never has to guess and the user
@@ -30,18 +34,36 @@ class AiVoiceDocsApp extends ConsumerWidget {
         if (isCheckingAccount) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(dynamicScheme: lightScheme),
-            darkTheme: AppTheme.dark(dynamicScheme: darkScheme),
+            theme: AppTheme.light(
+              dynamicScheme: lightScheme,
+              seedColor: accentColor,
+              fontFamily: fontFamily,
+            ),
+            darkTheme: AppTheme.dark(
+              dynamicScheme: darkScheme,
+              seedColor: accentColor,
+              fontFamily: fontFamily,
+            ),
             themeMode: themeMode,
-            home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+            home: const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
           );
         }
 
         return MaterialApp.router(
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(dynamicScheme: lightScheme),
-          darkTheme: AppTheme.dark(dynamicScheme: darkScheme),
+          theme: AppTheme.light(
+            dynamicScheme: lightScheme,
+            seedColor: accentColor,
+            fontFamily: fontFamily,
+          ),
+          darkTheme: AppTheme.dark(
+            dynamicScheme: darkScheme,
+            seedColor: accentColor,
+            fontFamily: fontFamily,
+          ),
           themeMode: themeMode,
           routerConfig: ref.watch(appRouterProvider),
         );

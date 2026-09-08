@@ -6,6 +6,7 @@ import 'package:ai_voice_docs/core/theme/app_theme.dart';
 import 'package:ai_voice_docs/features/folders/data/folder.dart';
 
 import '../../data/history_item.dart';
+import '../../domain/entry_summary.dart';
 
 /// Swipe-to-delete row for one saved voice transcript. In [selectionMode],
 /// the leading icon becomes a checkbox and tapping toggles selection instead
@@ -39,12 +40,16 @@ class HistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final sourceLang = languageByCode(item.sourceLanguageCode);
-    final folderColor =
-        folder == null ? null : AppTheme.folderPalette[folder!.colorIndex % AppTheme.folderPalette.length];
+    final folderColor = folder == null
+        ? null
+        : AppTheme.folderPalette[folder!.colorIndex %
+              AppTheme.folderPalette.length];
 
     return Dismissible(
       key: ValueKey(item.id),
-      direction: selectionMode ? DismissDirection.none : DismissDirection.endToStart,
+      direction: selectionMode
+          ? DismissDirection.none
+          : DismissDirection.endToStart,
       onDismissed: (_) => onDelete(),
       background: Container(
         alignment: Alignment.centerRight,
@@ -53,7 +58,10 @@ class HistoryTile extends StatelessWidget {
           color: scheme.errorContainer,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(Icons.delete_outline_rounded, color: scheme.onErrorContainer),
+        child: Icon(
+          Icons.delete_outline_rounded,
+          color: scheme.onErrorContainer,
+        ),
       ),
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
@@ -66,7 +74,12 @@ class HistoryTile extends StatelessWidget {
               Expanded(
                 child: ListTile(
                   onTap: onTap,
-                  contentPadding: const EdgeInsets.only(left: 16, right: 4, top: 4, bottom: 4),
+                  contentPadding: const EdgeInsets.only(
+                    left: 16,
+                    right: 4,
+                    top: 4,
+                    bottom: 4,
+                  ),
                   leading: selectionMode
                       ? Checkbox(value: selected, onChanged: (_) => onTap())
                       : Container(
@@ -77,13 +90,20 @@ class HistoryTile extends StatelessWidget {
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [AppTheme.brandRays[0], AppTheme.brandRays[1]],
+                              colors: [
+                                AppTheme.brandRays[0],
+                                AppTheme.brandRays[1],
+                              ],
                             ),
                           ),
-                          child: const Icon(Icons.mic_rounded, color: Colors.white, size: 20),
+                          child: const Icon(
+                            Icons.mic_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                   title: Text(
-                    item.sourceText,
+                    entrySummary(item.sourceText),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleMedium,
@@ -100,7 +120,10 @@ class HistoryTile extends StatelessWidget {
                       if (folder != null) ...[
                         const SizedBox(height: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: folderColor!.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(100),
@@ -109,7 +132,11 @@ class HistoryTile extends StatelessWidget {
                             folder!.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: folderColor),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: folderColor,
+                            ),
                           ),
                         ),
                       ],
@@ -121,12 +148,21 @@ class HistoryTile extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (item.reminderAt != null) ...[
-                              Icon(Icons.notifications_active_rounded, size: 14, color: scheme.primary),
+                              Icon(
+                                Icons.notifications_active_rounded,
+                                size: 14,
+                                color: scheme.primary,
+                              ),
                               const SizedBox(width: 4),
                             ],
                             Text(
-                              DateFormat('MMM d, h:mm a').format(item.timestamp),
-                              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+                              DateFormat(
+                                'MMM d, h:mm a',
+                              ).format(item.timestamp),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.share_outlined, size: 20),

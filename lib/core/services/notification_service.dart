@@ -14,7 +14,8 @@ class NotificationService {
 
   static const _reminderChannelId = 'entry_reminders';
 
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
   Future<void> initialize() async {
@@ -29,11 +30,17 @@ class NotificationService {
       // reminders still fire, just without DST-aware local-time math.
     }
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    await _plugin.initialize(const InitializationSettings(android: androidSettings));
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    await _plugin.initialize(
+      const InitializationSettings(android: androidSettings),
+    );
 
     await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(
           const AndroidNotificationChannel(
             _reminderChannelId,
@@ -51,8 +58,10 @@ class NotificationService {
   /// were about to turn on rather than silently scheduling a reminder that
   /// will never show.
   Future<bool> requestPermission() async {
-    final androidImpl =
-        _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    final androidImpl = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidImpl == null) return true;
     final granted = await androidImpl.requestNotificationsPermission();
     return granted ?? true;
@@ -76,9 +85,12 @@ class NotificationService {
     required DateTime scheduledDate,
     DateTimeComponents? matchDateTimeComponents,
   }) async {
-    final androidImpl =
-        _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    final canExact = await androidImpl?.canScheduleExactNotifications() ?? false;
+    final androidImpl = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    final canExact =
+        await androidImpl?.canScheduleExactNotifications() ?? false;
 
     await _plugin.zonedSchedule(
       id,
@@ -89,14 +101,17 @@ class NotificationService {
         android: AndroidNotificationDetails(
           _reminderChannelId,
           'Entry reminders',
-          channelDescription: 'Reminders you set on calendar and history entries',
+          channelDescription:
+              'Reminders you set on calendar and history entries',
           importance: Importance.high,
           priority: Priority.high,
         ),
       ),
-      androidScheduleMode:
-          canExact ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      androidScheduleMode: canExact
+          ? AndroidScheduleMode.exactAllowWhileIdle
+          : AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: matchDateTimeComponents,
     );
   }

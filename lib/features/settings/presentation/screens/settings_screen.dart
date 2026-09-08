@@ -4,14 +4,19 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:home_widget/home_widget.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
+import 'package:ai_voice_docs/core/theme/app_theme.dart';
+import 'package:ai_voice_docs/core/theme/paper_style.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
 import 'package:ai_voice_docs/features/backup/presentation/providers/backup_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
@@ -20,7 +25,10 @@ import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart'
 import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
 
 import '../providers/settings_providers.dart';
+import '../widgets/accent_color_picker.dart';
+import '../widgets/font_picker.dart';
 import '../widgets/google_cloud_speech_settings.dart';
+import '../widgets/paper_style_picker.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
 
@@ -37,13 +45,15 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('Settings'),
         bottom: const GradientAppBarUnderline(),
       ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: settingsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) =>
               Center(child: Text('Could not load settings: $err')),
           data: (settings) {
             final account = ref.watch(appLockControllerProvider).value?.account;
+            final biometricAvailable =
+                ref.watch(biometricAvailableProvider).value ?? false;
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -52,7 +62,15 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Account',
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.person_outline_rounded),
+                      leading:
+                          (account?.avatarPath != null &&
+                              File(account!.avatarPath!).existsSync())
+                          ? CircleAvatar(
+                              backgroundImage: FileImage(
+                                File(account.avatarPath!),
+                              ),
+                            )
+                          : const Icon(Icons.person_outline_rounded),
                       title: Text(account?.name ?? 'Signed in'),
                       subtitle: const Text('View profile'),
                       trailing: const Icon(Icons.chevron_right_rounded),
@@ -68,6 +86,18 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () =>
                           ref.read(appLockControllerProvider.notifier).lock(),
                     ),
+                    if (biometricAvailable) ...[
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        secondary: const Icon(Icons.fingerprint_rounded),
+                        title: const Text('Unlock with biometrics'),
+                        subtitle: const Text(
+                          'Use your fingerprint or face alongside your PIN',
+                        ),
+                        value: settings.biometricUnlockEnabled,
+                        onChanged: controller.setBiometricUnlockEnabled,
+                      ),
+                    ],
                   ],
                 ),
                 SettingsSection(
@@ -89,6 +119,92 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       value: settings.useDynamicColor,
                       onChanged: controller.setUseDynamicColor,
+                    ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Palette',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          Text(
+                            settings.useDynamicColor
+                                ? 'Turn off "Use wallpaper colors" to pick a color here'
+                                : 'Choose your accent color',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+                          Opacity(
+                            opacity: settings.useDynamicColor ? 0.4 : 1,
+                            child: IgnorePointer(
+                              ignoring: settings.useDynamicColor,
+                              child: AccentColorPicker(
+                                value: settings.accentColorValue == null
+                                    ? null
+                                    : Color(settings.accentColorValue!),
+                                onChanged: controller.setAccentColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Paper Style',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          Text(
+                            'Background texture for your pages',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+                          PaperStylePicker(
+                            value: settings.paperStyle,
+                            onChanged: controller.setPaperStyle,
+                            customImagePath: settings.customBackgroundPath,
+                            onPickCustomImage: () =>
+                                _pickCustomBackground(context, ref),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.font_download_outlined),
+                      title: const Text('Choose your font'),
+                      subtitle: Text(
+                        AppTheme.fontChoices
+                            .firstWhere(
+                              (c) => c.family == settings.fontFamily,
+                              orElse: () => AppTheme.fontChoices.first,
+                            )
+                            .label,
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => _pickFont(
+                        context,
+                        settings.fontFamily,
+                        controller.setFontFamily,
+                      ),
                     ),
                   ],
                 ),
@@ -165,6 +281,15 @@ class SettingsScreen extends ConsumerWidget {
                       value: settings.hapticFeedback,
                       onChanged: controller.setHapticFeedback,
                     ),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.widgets_outlined),
+                      title: const Text('Add "New voice entry" widget'),
+                      subtitle: const Text(
+                        'A home-screen shortcut that starts recording immediately',
+                      ),
+                      onTap: () => _addHomeWidget(context),
+                    ),
                   ],
                 ),
                 SettingsSection(
@@ -229,6 +354,101 @@ class SettingsScreen extends ConsumerWidget {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addHomeWidget(BuildContext context) async {
+    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
+    if (!supported) {
+      if (context.mounted) {
+        AppSnackbar.show(
+          context,
+          'Long-press your home screen, choose Widgets, then find Voice Docs AI to add it.',
+        );
+      }
+      return;
+    }
+    await HomeWidget.requestPinWidget(androidName: 'VoiceWidgetProvider');
+  }
+
+  Future<void> _pickCustomBackground(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !context.mounted) return;
+
+    final XFile? picked;
+    try {
+      picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+    } catch (_) {
+      if (context.mounted) {
+        AppSnackbar.show(
+          context,
+          'Could not open ${source == ImageSource.camera ? 'the camera' : 'the gallery'}.',
+          isError: true,
+        );
+      }
+      return;
+    }
+    if (picked == null) return;
+
+    final dir = await getApplicationDocumentsDirectory();
+    final destFile = File('${dir.path}/custom_background.jpg');
+    if (await destFile.exists()) await destFile.delete();
+    await File(picked.path).copy(destFile.path);
+
+    final controller = ref.read(settingsControllerProvider.notifier);
+    await controller.setCustomBackgroundPath(destFile.path);
+    await controller.setPaperStyle(PaperStyle.customImage);
+  }
+
+  Future<void> _pickFont(
+    BuildContext context,
+    String? currentFamily,
+    Future<void> Function(String?) onPicked,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: SingleChildScrollView(
+            child: FontPicker(
+              value: currentFamily,
+              onChanged: (family) {
+                onPicked(family);
+                Navigator.pop(sheetContext);
+              },
+            ),
+          ),
         ),
       ),
     );

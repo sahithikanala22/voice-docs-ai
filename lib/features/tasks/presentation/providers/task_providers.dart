@@ -1,4 +1,5 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' show DateTimeComponents;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'
+    show DateTimeComponents;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
@@ -18,7 +19,8 @@ final taskRepositoryProvider = Provider<TaskRepository>((ref) {
 /// Holds the full task checklist and exposes mutation methods that
 /// immediately persist and refresh state — the UI never talks to the
 /// repository directly.
-final taskControllerProvider = AsyncNotifierProvider<TaskController, List<Task>>(TaskController.new);
+final taskControllerProvider =
+    AsyncNotifierProvider<TaskController, List<Task>>(TaskController.new);
 
 class TaskController extends AsyncNotifier<List<Task>> {
   @override
@@ -31,7 +33,11 @@ class TaskController extends AsyncNotifier<List<Task>> {
     TaskRecurrence recurrence = TaskRecurrence.none,
     DateTime? reminderAt,
   }) async {
-    final task = Task.create(title, recurrence: recurrence, reminderAt: reminderAt);
+    final task = Task.create(
+      title,
+      recurrence: recurrence,
+      reminderAt: reminderAt,
+    );
     await ref.read(taskRepositoryProvider).add(task);
     state = AsyncData(await ref.read(taskRepositoryProvider).getAll());
     if (reminderAt != null) await _scheduleReminder(task);
@@ -45,15 +51,22 @@ class TaskController extends AsyncNotifier<List<Task>> {
   Future<void> removeTask(String id) async {
     await ref.read(taskRepositoryProvider).remove(id);
     state = AsyncData(await ref.read(taskRepositoryProvider).getAll());
-    await ref.read(notificationServiceProvider).cancel(reminderNotificationId(id));
+    await ref
+        .read(notificationServiceProvider)
+        .cancel(reminderNotificationId(id));
   }
 
   Future<void> clearCompleted() async {
-    final completedIds = (state.value ?? const []).where((t) => t.isDone).map((t) => t.id).toList();
+    final completedIds = (state.value ?? const [])
+        .where((t) => t.isDone)
+        .map((t) => t.id)
+        .toList();
     await ref.read(taskRepositoryProvider).clearCompleted();
     state = AsyncData(await ref.read(taskRepositoryProvider).getAll());
     for (final id in completedIds) {
-      await ref.read(notificationServiceProvider).cancel(reminderNotificationId(id));
+      await ref
+          .read(notificationServiceProvider)
+          .cancel(reminderNotificationId(id));
     }
   }
 
@@ -77,7 +90,9 @@ class TaskController extends AsyncNotifier<List<Task>> {
     // A one-off reminder in the past is pointless; a recurring one isn't —
     // the plugin schedules the next matching occurrence regardless of
     // whether the anchor moment itself has already passed.
-    if (task.recurrence == TaskRecurrence.none && !reminderAt.isAfter(DateTime.now())) return;
+    if (task.recurrence == TaskRecurrence.none &&
+        !reminderAt.isAfter(DateTime.now()))
+      return;
 
     final notificationService = ref.read(notificationServiceProvider);
     final granted = await notificationService.requestPermission();

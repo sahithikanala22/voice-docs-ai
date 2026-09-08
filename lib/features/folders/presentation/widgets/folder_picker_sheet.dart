@@ -12,12 +12,16 @@ import '../providers/folder_providers.dart';
 /// - `null` — dismissed without a selection (caller should do nothing)
 /// - `''` (empty string) — "No folder" was explicitly selected
 /// - any other string — the id of the selected folder
-Future<String?> showFolderPicker(BuildContext context, {required String? selectedFolderId}) {
+Future<String?> showFolderPicker(
+  BuildContext context, {
+  required String? selectedFolderId,
+}) {
   return showModalBottomSheet<String?>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (context) => _FolderPickerSheet(selectedFolderId: selectedFolderId),
+    builder: (context) =>
+        _FolderPickerSheet(selectedFolderId: selectedFolderId),
   );
 }
 
@@ -46,11 +50,18 @@ class _ColorSwatchRow extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: AppTheme.folderPalette[i],
                 border: i == selectedIndex
-                    ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2.5)
+                    ? Border.all(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        width: 2.5,
+                      )
                     : null,
               ),
               child: i == selectedIndex
-                  ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                  ? const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    )
                   : null,
             ),
           ),
@@ -118,7 +129,10 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
                       for (final folder in folders)
                         RadioListTile<String?>(
                           contentPadding: EdgeInsets.zero,
-                          title: Text(folder.name, overflow: TextOverflow.ellipsis),
+                          title: Text(
+                            folder.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           value: folder.id,
                           secondary: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -126,7 +140,8 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
                               CircleAvatar(
                                 radius: 8,
                                 backgroundColor:
-                                    AppTheme.folderPalette[folder.colorIndex % AppTheme.folderPalette.length],
+                                    AppTheme.folderPalette[folder.colorIndex %
+                                        AppTheme.folderPalette.length],
                               ),
                               const SizedBox(width: 8),
                               IconButton(
@@ -135,7 +150,10 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
                                 onPressed: () => _editFolder(folder),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                                icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                ),
                                 tooltip: 'Delete',
                                 onPressed: () => _deleteFolder(folder),
                               ),
@@ -161,12 +179,17 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
               Expanded(
                 child: TextField(
                   controller: _newFolderController,
-                  decoration: const InputDecoration(hintText: 'Folder name, e.g. Diary'),
+                  decoration: const InputDecoration(
+                    hintText: 'Folder name, e.g. Diary',
+                  ),
                   onSubmitted: (_) => _createFolder(),
                 ),
               ),
               const SizedBox(width: 8),
-              FilledButton(onPressed: _createFolder, child: const Text('Create')),
+              FilledButton(
+                onPressed: _createFolder,
+                child: const Text('Create'),
+              ),
             ],
           ),
         ],
@@ -205,15 +228,23 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save')),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Save'),
+            ),
           ],
         ),
       ),
     );
 
     if (saved == true && nameController.text.trim().isNotEmpty) {
-      await ref.read(folderControllerProvider.notifier).updateFolder(
+      await ref
+          .read(folderControllerProvider.notifier)
+          .updateFolder(
             folder.id,
             name: nameController.text.trim(),
             colorIndex: colorIndex,
@@ -230,8 +261,14 @@ class _FolderPickerSheetState extends ConsumerState<_FolderPickerSheet> {
           '"${folder.name}" will be removed. Entries inside it become unfiled — nothing is deleted.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );

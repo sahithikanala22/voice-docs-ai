@@ -22,11 +22,15 @@ import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/spe
 /// of, another screen's live transcript.
 const _sourceSessionTag = 'add-entry-source';
 
-/// Bottom sheet for manually adding a history entry on any day — past dates
-/// backfill something you did offline instead of only ever capturing "now"
-/// via the mic; future dates work like a planned event, and can carry a
-/// reminder. The text field can be typed or dictated.
-Future<void> showAddEntrySheet(BuildContext context, {required DateTime initialDate}) {
+/// Bottom sheet for manually adding a history entry on today or any past
+/// day — backfills something you did offline instead of only ever capturing
+/// "now" via the mic. Entries record what happened, so the date can't be
+/// pushed into the future; a reminder attached to the entry can still be
+/// set for later. The text field can be typed or dictated.
+Future<void> showAddEntrySheet(
+  BuildContext context, {
+  required DateTime initialDate,
+}) {
   return showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -91,19 +95,25 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     final foldersAsync = ref.watch(folderControllerProvider);
     final folderName = folderNameFor(foldersAsync.value, _folderId);
 
-    final sourceRecognition = ref.watch(speechControllerProvider(_sourceSessionTag));
+    final sourceRecognition = ref.watch(
+      speechControllerProvider(_sourceSessionTag),
+    );
 
     // Mirror the live transcript into the text field while listening, same
     // pattern as the Voice tab's field.
-    if (sourceRecognition.isListening && _sourceTextController.text != sourceRecognition.transcript) {
+    if (sourceRecognition.isListening &&
+        _sourceTextController.text != sourceRecognition.transcript) {
       _sourceTextController.value = _sourceTextController.value.copyWith(
         text: sourceRecognition.transcript,
-        selection: TextSelection.collapsed(offset: sourceRecognition.transcript.length),
+        selection: TextSelection.collapsed(
+          offset: sourceRecognition.transcript.length,
+        ),
       );
     }
 
     ref.listen(speechControllerProvider(_sourceSessionTag), (previous, next) {
-      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+      if (next.errorMessage != null &&
+          next.errorMessage != previous?.errorMessage) {
         AppSnackbar.show(context, next.errorMessage!, isError: true);
       }
     });
@@ -126,7 +136,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
               OutlinedButton.icon(
                 onPressed: _pickDate,
                 icon: const Icon(Icons.event_outlined),
-                label: Text(DateFormat('EEEE, MMM d, yyyy · h:mm a').format(_date)),
+                label: Text(
+                  DateFormat('EEEE, MMM d, yyyy · h:mm a').format(_date),
+                ),
               ),
               const SizedBox(height: 16),
               Wrap(
@@ -137,7 +149,10 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                     language: _sourceLanguage,
                     onTap: _pickLanguage,
                   ),
-                  FolderSelectorChip(folderName: folderName, onTap: _pickFolder),
+                  FolderSelectorChip(
+                    folderName: folderName,
+                    onTap: _pickFolder,
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -146,14 +161,23 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 maxLines: 4,
                 minLines: 2,
                 decoration: InputDecoration(
-                  hintText: sourceRecognition.isListening ? 'Listening…' : 'Type or speak the text',
+                  hintText: sourceRecognition.isListening
+                      ? 'Listening…'
+                      : 'Type or speak the text',
                   suffixIcon: IconButton(
-                    icon: Icon(sourceRecognition.isListening ? Icons.stop_circle_rounded : Icons.mic_rounded),
+                    icon: Icon(
+                      sourceRecognition.isListening
+                          ? Icons.stop_circle_rounded
+                          : Icons.mic_rounded,
+                    ),
                     tooltip: sourceRecognition.isListening ? 'Stop' : 'Dictate',
-                    onPressed: () => _toggleListening(sourceRecognition.isListening),
+                    onPressed: () =>
+                        _toggleListening(sourceRecognition.isListening),
                   ),
                 ),
-                validator: (value) => (value == null || value.trim().isEmpty) ? 'Enter some text' : null,
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Enter some text'
+                    : null,
               ),
               const SizedBox(height: 8),
               SwitchListTile(
@@ -161,7 +185,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 title: const Text('Remind me'),
                 subtitle: Text(
                   _reminderEnabled && _reminderAt != null
-                      ? DateFormat('EEEE, MMM d, yyyy · h:mm a').format(_reminderAt!)
+                      ? DateFormat(
+                          'EEEE, MMM d, yyyy · h:mm a',
+                        ).format(_reminderAt!)
                       : 'Get a notification at a chosen time',
                 ),
                 value: _reminderEnabled,
@@ -189,7 +215,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   }
 
   Future<void> _toggleListening(bool isListening) async {
-    final controller = ref.read(speechControllerProvider(_sourceSessionTag).notifier);
+    final controller = ref.read(
+      speechControllerProvider(_sourceSessionTag).notifier,
+    );
     if (isListening) {
       await controller.stopListening();
     } else {
@@ -201,9 +229,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     final now = DateTime.now();
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: _date,
+      initialDate: _date.isAfter(now) ? now : _date,
       firstDate: DateTime(now.year - 10),
-      lastDate: DateTime(now.year + 10),
+      lastDate: now,
     );
     if (pickedDate == null || !mounted) return;
 
@@ -242,21 +270,31 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
       });
       return;
     }
-    final granted = await ref.read(notificationServiceProvider).requestPermission();
+    final granted = await ref
+        .read(notificationServiceProvider)
+        .requestPermission();
     if (!mounted) return;
     if (!granted) {
-      AppSnackbar.show(context, 'Allow notifications to get reminders', isError: true);
+      AppSnackbar.show(
+        context,
+        'Allow notifications to get reminders',
+        isError: true,
+      );
       return;
     }
     setState(() {
       _reminderEnabled = true;
-      _reminderAt ??= _date.isAfter(DateTime.now()) ? _date : DateTime.now().add(const Duration(hours: 1));
+      _reminderAt ??= _date.isAfter(DateTime.now())
+          ? _date
+          : DateTime.now().add(const Duration(hours: 1));
     });
   }
 
   Future<void> _pickReminderTime() async {
     final now = DateTime.now();
-    final initial = _reminderAt ?? (_date.isAfter(now) ? _date : now.add(const Duration(hours: 1)));
+    final initial =
+        _reminderAt ??
+        (_date.isAfter(now) ? _date : now.add(const Duration(hours: 1)));
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -291,8 +329,23 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    if (_reminderEnabled && _reminderAt != null && !_reminderAt!.isAfter(DateTime.now())) {
-      AppSnackbar.show(context, 'Reminder time must be in the future', isError: true);
+    if (_date.isAfter(DateTime.now())) {
+      AppSnackbar.show(
+        context,
+        'Entries can only be added for today or a past date',
+        isError: true,
+      );
+      return;
+    }
+
+    if (_reminderEnabled &&
+        _reminderAt != null &&
+        !_reminderAt!.isAfter(DateTime.now())) {
+      AppSnackbar.show(
+        context,
+        'Reminder time must be in the future',
+        isError: true,
+      );
       return;
     }
     final reminderAt = _reminderEnabled ? _reminderAt : null;
@@ -308,7 +361,10 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     await ref.read(historyControllerProvider.notifier).addEntry(item);
     if (mounted) {
       Navigator.pop(context);
-      AppSnackbar.show(context, 'Entry added to ${DateFormat('MMM d').format(_date)}');
+      AppSnackbar.show(
+        context,
+        'Entry added to ${DateFormat('MMM d').format(_date)}',
+      );
     }
   }
 }

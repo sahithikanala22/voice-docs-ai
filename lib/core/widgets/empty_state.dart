@@ -31,7 +31,10 @@ class EmptyState extends StatelessWidget {
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -39,12 +42,16 @@ class EmptyState extends StatelessWidget {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: RadialGradient(
-                          colors: [scheme.primary.withValues(alpha: 0.18), scheme.surfaceContainerHigh],
+                          colors: [
+                            scheme.primary.withValues(alpha: 0.18),
+                            scheme.surfaceContainerHigh,
+                          ],
                         ),
                         shape: BoxShape.circle,
                       ),
                       child: ShaderMask(
-                        shaderCallback: (bounds) => AppTheme.heroGradient(scheme).createShader(bounds),
+                        shaderCallback: (bounds) =>
+                            AppTheme.heroGradient(scheme).createShader(bounds),
                         child: Icon(icon, size: 36, color: Colors.white),
                       ),
                     ),
@@ -59,10 +66,9 @@ class EmptyState extends StatelessWidget {
                       Text(
                         subtitle!,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],

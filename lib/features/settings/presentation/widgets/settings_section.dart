@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 /// Groups related settings under a header label, matching the settings
 /// screen's "Appearance / Language / Data / About" section layout.
 class SettingsSection extends StatelessWidget {
-  const SettingsSection({super.key, required this.title, required this.children});
+  const SettingsSection({
+    super.key,
+    required this.title,
+    required this.children,
+  });
 
   final String title;
   final List<Widget> children;

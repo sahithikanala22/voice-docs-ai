@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 /// voice-to-text and translator screens to pick which folder new entries
 /// save into — mirrors [LanguageSelectorChip]'s look and interaction.
 class FolderSelectorChip extends StatelessWidget {
-  const FolderSelectorChip({super.key, required this.folderName, required this.onTap});
+  const FolderSelectorChip({
+    super.key,
+    required this.folderName,
+    required this.onTap,
+  });
 
   final String folderName;
   final VoidCallback onTap;
@@ -23,11 +27,19 @@ class FolderSelectorChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.folder_outlined, size: 18, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.folder_outlined,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 8),
               Text(folderName, style: Theme.of(context).textTheme.labelLarge),
               const SizedBox(width: 4),
-              Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: scheme.onSurfaceVariant),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),

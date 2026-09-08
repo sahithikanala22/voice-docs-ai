@@ -20,7 +20,9 @@ class FolderFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChoiceChip(
-      avatar: color == null ? null : CircleAvatar(backgroundColor: color, radius: 6),
+      avatar: color == null
+          ? null
+          : CircleAvatar(backgroundColor: color, radius: 6),
       label: Text(label, overflow: TextOverflow.ellipsis),
       selected: selected,
       onSelected: (_) => onSelected(),

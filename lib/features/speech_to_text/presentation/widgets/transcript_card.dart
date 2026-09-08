@@ -39,45 +39,58 @@ class TranscriptCard extends StatelessWidget {
                         alignment: Alignment.topLeft,
                         child: Text(
                           transcript,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w500),
                         ),
                       ),
                     )
                   : isListening
-                      // Distinct from the idle placeholder below — without
-                      // this, a device whose recognizer is slow to return
-                      // its first chunk looks identical to "nothing is
-                      // happening", which reads as broken rather than busy.
-                      ? const EmptyState(
-                          icon: Icons.graphic_eq_rounded,
-                          title: 'Listening…',
-                          subtitle: 'Keep speaking — recognized text will appear here shortly.',
-                        )
-                      : const EmptyState(
-                          icon: Icons.mic_none_rounded,
-                          title: 'Tap the mic to start speaking',
-                          subtitle: 'Your words will appear here in real time.',
-                        ),
+                  // Distinct from the idle placeholder below — without
+                  // this, a device whose recognizer is slow to return
+                  // its first chunk looks identical to "nothing is
+                  // happening", which reads as broken rather than busy.
+                  ? const EmptyState(
+                      icon: Icons.graphic_eq_rounded,
+                      title: 'Listening…',
+                      subtitle:
+                          'Keep speaking — recognized text will appear here shortly.',
+                    )
+                  : const EmptyState(
+                      icon: Icons.mic_none_rounded,
+                      title: 'Tap the mic to start speaking',
+                      subtitle: 'Your words will appear here in real time.',
+                    ),
             ),
             const Divider(height: 24),
             Row(
               children: [
                 Expanded(
-                  child: _ActionIcon(icon: Icons.copy_rounded, label: 'Copy', onTap: _hasContent ? onCopy : null),
-                ),
-                Expanded(
-                  child:
-                      _ActionIcon(icon: Icons.close_rounded, label: 'Clear', onTap: _hasContent ? onClear : null),
+                  child: _ActionIcon(
+                    icon: Icons.copy_rounded,
+                    label: 'Copy',
+                    onTap: _hasContent ? onCopy : null,
+                  ),
                 ),
                 Expanded(
                   child: _ActionIcon(
-                      icon: Icons.volume_up_rounded, label: 'Speak', onTap: _hasContent ? onSpeak : null),
+                    icon: Icons.close_rounded,
+                    label: 'Clear',
+                    onTap: _hasContent ? onClear : null,
+                  ),
                 ),
                 Expanded(
-                  child:
-                      _ActionIcon(icon: Icons.share_rounded, label: 'Share', onTap: _hasContent ? onShare : null),
+                  child: _ActionIcon(
+                    icon: Icons.volume_up_rounded,
+                    label: 'Speak',
+                    onTap: _hasContent ? onSpeak : null,
+                  ),
+                ),
+                Expanded(
+                  child: _ActionIcon(
+                    icon: Icons.share_rounded,
+                    label: 'Share',
+                    onTap: _hasContent ? onShare : null,
+                  ),
                 ),
               ],
             ),
@@ -89,7 +102,11 @@ class TranscriptCard extends StatelessWidget {
 }
 
 class _ActionIcon extends StatelessWidget {
-  const _ActionIcon({required this.icon, required this.label, required this.onTap});
+  const _ActionIcon({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -106,14 +123,21 @@ class _ActionIcon extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           children: [
-            Icon(icon, color: enabled ? scheme.primary : scheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            Icon(
+              icon,
+              color: enabled
+                  ? scheme.primary
+                  : scheme.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: enabled ? scheme.onSurface : scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                color: enabled
+                    ? scheme.onSurface
+                    : scheme.onSurfaceVariant.withValues(alpha: 0.4),
               ),
             ),
           ],

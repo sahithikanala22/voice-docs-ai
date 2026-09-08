@@ -22,7 +22,9 @@ class _FakeUnlockedAppLockController extends AppLockController {
 }
 
 void main() {
-  testWidgets('App launches on the voice-to-text home tab with bottom nav', (tester) async {
+  testWidgets('App launches on the voice-to-text home tab with bottom nav', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 
@@ -38,7 +40,9 @@ void main() {
       ProviderScope(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
-          appLockControllerProvider.overrideWith(_FakeUnlockedAppLockController.new),
+          appLockControllerProvider.overrideWith(
+            _FakeUnlockedAppLockController.new,
+          ),
         ],
         child: const AiVoiceDocsApp(),
       ),
@@ -50,7 +54,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    expect(find.text('Today'), findsOneWidget);
+    // "Today" also appears on the new date-selector chip, so target the
+    // app bar's title specifically rather than asserting there's only one.
+    expect(find.widgetWithText(AppBar, 'Today'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);

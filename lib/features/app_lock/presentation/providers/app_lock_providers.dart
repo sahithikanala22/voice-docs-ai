@@ -8,6 +8,7 @@ import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import '../../data/app_lock_account.dart';
 import '../../data/app_lock_local_datasource.dart';
 import '../../data/app_lock_repository_impl.dart';
+import '../../data/biometric_auth_service.dart';
 import '../../domain/app_lock_repository.dart';
 import 'app_lock_state.dart';
 
@@ -16,12 +17,25 @@ final appLockRepositoryProvider = Provider<AppLockRepository>((ref) {
   return AppLockRepositoryImpl(AppLockLocalDataSource(prefs));
 });
 
+final biometricAuthServiceProvider = Provider<BiometricAuthService>(
+  (ref) => BiometricAuthService(),
+);
+
+/// Whether this device can actually do biometric auth — gates whether the
+/// Settings toggle even appears, since offering it on hardware with nothing
+/// enrolled would just fail every time.
+final biometricAvailableProvider = FutureProvider<bool>((ref) {
+  return ref.watch(biometricAuthServiceProvider).isAvailable();
+});
+
 /// Drives the signup/PIN-entry gate. `build()` loads whatever account is
 /// already on disk (if any) once per app process — `isUnlocked` then only
 /// ever flips true in-memory via [unlock] or right after [createAccount], so
 /// a fresh process always starts locked again.
 final appLockControllerProvider =
-    AsyncNotifierProvider<AppLockController, AppLockState>(AppLockController.new);
+    AsyncNotifierProvider<AppLockController, AppLockState>(
+      AppLockController.new,
+    );
 
 class AppLockController extends AsyncNotifier<AppLockState> {
   @override
@@ -32,7 +46,10 @@ class AppLockController extends AsyncNotifier<AppLockState> {
 
   String _hashPin(String pin) => sha256.convert(utf8.encode(pin)).toString();
 
-  Future<void> createAccount({required String name, required String pin}) async {
+  Future<void> createAccount({
+    required String name,
+    required String pin,
+  }) async {
     final account = AppLockAccount(name: name.trim(), pinHash: _hashPin(pin));
     await ref.read(appLockRepositoryProvider).save(account);
     state = AsyncData(AppLockState(account: account, isUnlocked: true));
@@ -54,10 +71,24 @@ class AppLockController extends AsyncNotifier<AppLockState> {
     return matches;
   }
 
+  /// Unlocks after a successful biometric check — no PIN involved, since
+  /// the OS's own fingerprint/face prompt already did the authenticating.
+  void unlockWithBiometrics() {
+    final current = state.value;
+    if (current == null || current.account == null) return;
+    state = AsyncData(current.copyWith(isUnlocked: true, errorMessage: null));
+  }
+
   /// Updates the profile fields shown on the Profile screen. Rebuilds the
   /// account explicitly (rather than via `copyWith`) so passing `null` for
-  /// [dob]/[email] unambiguously clears them.
-  Future<void> updateProfile({required String name, DateTime? dob, String? email}) async {
+  /// [dob]/[email] unambiguously clears them. [avatarPath] is left
+  /// unchanged when omitted — it's updated separately via [updateAvatar]
+  /// since picking a photo doesn't go through the rest of this form.
+  Future<void> updateProfile({
+    required String name,
+    DateTime? dob,
+    String? email,
+  }) async {
     final current = state.value;
     final account = current?.account;
     if (current == null || account == null) return;
@@ -67,8 +98,22 @@ class AppLockController extends AsyncNotifier<AppLockState> {
       name: name.trim(),
       pinHash: account.pinHash,
       dob: dob,
-      email: (trimmedEmail == null || trimmedEmail.isEmpty) ? null : trimmedEmail,
+      email: (trimmedEmail == null || trimmedEmail.isEmpty)
+          ? null
+          : trimmedEmail,
+      avatarPath: account.avatarPath,
     );
+    await ref.read(appLockRepositoryProvider).save(updated);
+    state = AsyncData(current.copyWith(account: updated));
+  }
+
+  /// Sets or clears (pass `null`) the path to the profile picture.
+  Future<void> updateAvatar(String? avatarPath) async {
+    final current = state.value;
+    final account = current?.account;
+    if (current == null || account == null) return;
+
+    final updated = account.copyWith(avatarPath: avatarPath);
     await ref.read(appLockRepositoryProvider).save(updated);
     state = AsyncData(current.copyWith(account: updated));
   }

@@ -49,36 +49,73 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(path: '/signup', builder: (context, state) => const SignupScreen()),
-      GoRoute(path: '/pin', builder: (context, state) => const PinEntryScreen()),
+      GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/pin',
+        builder: (context, state) => const PinEntryScreen(),
+      ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => RootScaffold(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) =>
+            RootScaffold(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/', builder: (context, state) => const VoiceToTextScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/history', builder: (context, state) => const HistoryScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/calendar', builder: (context, state) => const CalendarScreen()),
-          ]),
-          StatefulShellBranch(routes: [
-            GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
-          ]),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const VoiceToTextScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/tasks',
+                builder: (context, state) => const TasksScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                builder: (context, state) => const HistoryScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/calendar',
+                builder: (context, state) => const CalendarScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (context, state) => const SettingsScreen(),
+              ),
+            ],
+          ),
         ],
       ),
-      GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
       GoRoute(
         path: '/language-picker',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? const {};
           return LanguagePickerScreen(
             title: extra['title'] as String? ?? 'Choose a language',
-            selectedCode: extra['selectedCode'] as String? ?? AppConstants.defaultSourceLanguageCode,
+            selectedCode:
+                extra['selectedCode'] as String? ??
+                AppConstants.defaultSourceLanguageCode,
           );
         },
       ),
@@ -87,7 +124,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? const {};
           return VoicePickerScreen(
-            languageCode: extra['languageCode'] as String? ?? AppConstants.defaultSourceLanguageCode,
+            languageCode:
+                extra['languageCode'] as String? ??
+                AppConstants.defaultSourceLanguageCode,
             languageName: extra['languageName'] as String? ?? 'Voice',
             selectedVoiceName: extra['selectedVoiceName'] as String?,
           );

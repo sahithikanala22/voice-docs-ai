@@ -18,7 +18,9 @@ final historyRepositoryProvider = Provider<HistoryRepository>((ref) {
 /// that immediately persist and refresh state — the UI never talks to the
 /// repository directly.
 final historyControllerProvider =
-    AsyncNotifierProvider<HistoryController, List<HistoryItem>>(HistoryController.new);
+    AsyncNotifierProvider<HistoryController, List<HistoryItem>>(
+      HistoryController.new,
+    );
 
 class HistoryController extends AsyncNotifier<List<HistoryItem>> {
   @override
@@ -37,7 +39,9 @@ class HistoryController extends AsyncNotifier<List<HistoryItem>> {
   Future<void> removeEntry(String id) async {
     await ref.read(historyRepositoryProvider).remove(id);
     state = AsyncData(await ref.read(historyRepositoryProvider).getAll());
-    await ref.read(notificationServiceProvider).cancel(reminderNotificationId(id));
+    await ref
+        .read(notificationServiceProvider)
+        .cancel(reminderNotificationId(id));
   }
 
   Future<void> clearAll() async {

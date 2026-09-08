@@ -14,11 +14,15 @@ class GoogleCloudSpeechSettings extends ConsumerStatefulWidget {
   final String? apiKey;
 
   @override
-  ConsumerState<GoogleCloudSpeechSettings> createState() => _GoogleCloudSpeechSettingsState();
+  ConsumerState<GoogleCloudSpeechSettings> createState() =>
+      _GoogleCloudSpeechSettingsState();
 }
 
-class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSettings> {
-  late final TextEditingController _controller = TextEditingController(text: widget.apiKey);
+class _GoogleCloudSpeechSettingsState
+    extends ConsumerState<GoogleCloudSpeechSettings> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.apiKey,
+  );
   bool _obscure = true;
 
   @override
@@ -41,7 +45,11 @@ class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSet
             decoration: InputDecoration(
               labelText: 'Google Cloud API key',
               suffixIcon: IconButton(
-                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                icon: Icon(
+                  _obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
                 tooltip: _obscure ? 'Show key' : 'Hide key',
                 onPressed: () => setState(() => _obscure = !_obscure),
               ),
@@ -54,16 +62,18 @@ class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSet
             'From Google Cloud Console: enable the "Cloud Speech-to-Text API", create an API key, then '
             'restrict it to Android apps using package com.aivoicedocs.app. Stored only on this device '
             '— never bundled with the app or sent anywhere except Google\'s API.',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
             'Note: no live captions in this mode — you\'ll see the transcript right after you stop '
             'talking, not word-by-word while speaking.',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: scheme.primary, fontWeight: FontWeight.w600),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -72,6 +82,8 @@ class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSet
 
   void _save() {
     final value = _controller.text.trim();
-    ref.read(settingsControllerProvider.notifier).setGoogleCloudApiKey(value.isEmpty ? null : value);
+    ref
+        .read(settingsControllerProvider.notifier)
+        .setGoogleCloudApiKey(value.isEmpty ? null : value);
   }
 }

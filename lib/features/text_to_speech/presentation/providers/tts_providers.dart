@@ -8,7 +8,9 @@ import '../../data/repositories/tts_repository_impl.dart';
 import '../../domain/tts_repository.dart';
 import '../../domain/tts_voice_option.dart';
 
-final ttsProviderImplProvider = Provider<TtsProvider>((ref) => DeviceTtsProvider());
+final ttsProviderImplProvider = Provider<TtsProvider>(
+  (ref) => DeviceTtsProvider(),
+);
 
 final ttsRepositoryProvider = Provider<TtsRepository>((ref) {
   return TtsRepositoryImpl(ref.watch(ttsProviderImplProvider));
@@ -16,7 +18,9 @@ final ttsRepositoryProvider = Provider<TtsRepository>((ref) {
 
 /// Tracks whether the app is currently speaking, so UI (e.g. a speak button)
 /// can show a stop icon instead while playback is in progress.
-final ttsControllerProvider = NotifierProvider<TtsController, bool>(TtsController.new);
+final ttsControllerProvider = NotifierProvider<TtsController, bool>(
+  TtsController.new,
+);
 
 class TtsController extends Notifier<bool> {
   @override
@@ -30,8 +34,13 @@ class TtsController extends Notifier<bool> {
 
   Future<void> speak(String text, String languageCode) async {
     if (text.trim().isEmpty) return;
-    final voiceName = ref.read(settingsControllerProvider).value?.ttsVoiceByLanguage[languageCode];
-    await ref.read(ttsRepositoryProvider).speak(text, languageCode, voiceName: voiceName);
+    final voiceName = ref
+        .read(settingsControllerProvider)
+        .value
+        ?.ttsVoiceByLanguage[languageCode];
+    await ref
+        .read(ttsRepositoryProvider)
+        .speak(text, languageCode, voiceName: voiceName);
   }
 
   Future<void> stop() async {

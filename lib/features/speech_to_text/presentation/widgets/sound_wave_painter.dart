@@ -8,7 +8,11 @@ import 'package:flutter/material.dart';
 /// logo's cyan-to-orange sound-wave palette) instead of one flat tint, so the
 /// pulse reads as the same radiating burst as the app icon.
 class SoundWavePainter extends CustomPainter {
-  SoundWavePainter({required this.level, required this.colors, required this.animationValue});
+  SoundWavePainter({
+    required this.level,
+    required this.colors,
+    required this.animationValue,
+  });
 
   /// Roughly 0.0 (silence) .. 1.0 (loud), already normalized by the caller.
   final double level;
@@ -27,7 +31,9 @@ class SoundWavePainter extends CustomPainter {
 
     for (var ring = 0; ring < _ringCount; ring++) {
       final ringProgress = ((animationValue + ring / _ringCount) % 1.0);
-      final radius = baseRadius + (maxRadius - baseRadius) * ringProgress * (0.4 + level * 0.6);
+      final radius =
+          baseRadius +
+          (maxRadius - baseRadius) * ringProgress * (0.4 + level * 0.6);
       final opacity = (1 - ringProgress) * (0.15 + level * 0.25);
       final color = colors[ring % colors.length];
 
@@ -41,6 +47,7 @@ class SoundWavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant SoundWavePainter oldDelegate) {
-    return oldDelegate.level != level || oldDelegate.animationValue != animationValue;
+    return oldDelegate.level != level ||
+        oldDelegate.animationValue != animationValue;
   }
 }

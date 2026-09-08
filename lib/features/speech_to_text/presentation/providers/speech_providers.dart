@@ -49,7 +49,9 @@ final speechRepositoryProvider = Provider<SpeechRepository>((ref) {
 /// because `StatefulShellRoute` keeps every tab alive, a single global
 /// controller would leak one screen's live transcript into the other.
 final speechControllerProvider =
-    NotifierProvider.family<SpeechController, RecognitionState, String>(SpeechController.new);
+    NotifierProvider.family<SpeechController, RecognitionState, String>(
+      SpeechController.new,
+    );
 
 class SpeechController extends FamilyNotifier<RecognitionState, String> {
   bool _isStarting = false;
@@ -81,6 +83,13 @@ class SpeechController extends FamilyNotifier<RecognitionState, String> {
         );
         return;
       }
+
+      // Best-effort: on Android 12+, the on-device recognizer only routes
+      // audio through a connected Bluetooth headset's mic once this is
+      // granted (see OnDeviceSpeechProvider's doc comment) — never treated
+      // as a failure, since recording from the phone's own mic works fine
+      // without it.
+      await Permission.bluetoothConnect.request();
 
       final repo = ref.read(speechRepositoryProvider);
       final available = await repo.initialize();
