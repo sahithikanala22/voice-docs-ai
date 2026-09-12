@@ -8,6 +8,7 @@ import 'package:ai_voice_docs/features/app_lock/presentation/screens/pin_entry_s
 import 'package:ai_voice_docs/features/app_lock/presentation/screens/profile_screen.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/screens/signup_screen.dart';
 import 'package:ai_voice_docs/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_screen.dart';
 import 'package:ai_voice_docs/features/history/presentation/screens/history_screen.dart';
 import 'package:ai_voice_docs/features/settings/presentation/screens/language_picker_screen.dart';
 import 'package:ai_voice_docs/features/settings/presentation/screens/settings_screen.dart';
@@ -65,6 +66,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/calendar', builder: (context, state) => const CalendarScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/diary', builder: (context, state) => const DiaryScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),

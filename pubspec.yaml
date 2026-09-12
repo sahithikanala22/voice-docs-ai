@@ -2,7 +2,7 @@ name: ai_voice_docs
 description: "Voxi Translate — real-time speech-to-text, translation and text-to-speech."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.12.2
