@@ -14,7 +14,7 @@ part 'language.freezed.dart';
 /// intentionally map to one representative country rather than every country
 /// that speaks them.
 @freezed
-class Language with _$Language {
+abstract class Language with _$Language {
   const factory Language({
     required String code,
     required String localeHint,

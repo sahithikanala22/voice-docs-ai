@@ -5,7 +5,7 @@ part 'recognition_state.freezed.dart';
 /// Live state of a speech-recognition session, streamed to the UI in real
 /// time while the user is speaking.
 @freezed
-class RecognitionState with _$RecognitionState {
+abstract class RecognitionState with _$RecognitionState {
   const factory RecognitionState({
     @Default(false) bool isListening,
     @Default(false) bool isAvailable,

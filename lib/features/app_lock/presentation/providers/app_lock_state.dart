@@ -9,7 +9,7 @@ part 'app_lock_state.freezed.dart';
 /// process start (in-memory only, never persisted) — that's what makes the
 /// PIN screen show up "while entering the app" rather than just once ever.
 @freezed
-class AppLockState with _$AppLockState {
+abstract class AppLockState with _$AppLockState {
   const factory AppLockState({
     AppLockAccount? account,
     @Default(false) bool isUnlocked,

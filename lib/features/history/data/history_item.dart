@@ -13,7 +13,7 @@ String _nextId() => '${DateTime.now().microsecondsSinceEpoch}-${_idCounter++}';
 /// data/domain/presentation — a separate "entity" would just duplicate these
 /// same fields with no behavioral difference.
 @freezed
-class HistoryItem with _$HistoryItem {
+abstract class HistoryItem with _$HistoryItem {
   const factory HistoryItem({
     required String id,
     required String sourceText,
