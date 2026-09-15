@@ -40,6 +40,10 @@ class NotificationService {
             'Entry reminders',
             description: 'Reminders you set on calendar and history entries',
             importance: Importance.high,
+            // Explicit even though it's the plugin's default — this is what
+            // tells the launcher to show an unread dot on the app icon while
+            // the notification is active.
+            showBadge: true,
           ),
         );
 
@@ -92,6 +96,7 @@ class NotificationService {
           channelDescription: 'Reminders you set on calendar and history entries',
           importance: Importance.high,
           priority: Priority.high,
+          channelShowBadge: true,
         ),
       ),
       androidScheduleMode:
