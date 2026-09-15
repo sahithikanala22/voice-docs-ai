@@ -62,13 +62,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
           ]),
           StatefulShellBranch(routes: [
-            GoRoute(path: '/history', builder: (context, state) => const HistoryScreen()),
-          ]),
-          StatefulShellBranch(routes: [
             GoRoute(path: '/calendar', builder: (context, state) => const CalendarScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/diary', builder: (context, state) => const DiaryScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/history', builder: (context, state) => const HistoryScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
