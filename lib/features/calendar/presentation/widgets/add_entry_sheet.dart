@@ -22,6 +22,44 @@ import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/spe
 /// of, another screen's live transcript.
 const _sourceSessionTag = 'add-entry-source';
 
+/// A quick-start skeleton for the entry text — tapping one fills the field
+/// with a structure to write into rather than starting from a blank line.
+class _EntryTemplate {
+  const _EntryTemplate(this.label, this.icon, this.text);
+
+  final String label;
+  final IconData icon;
+  final String text;
+}
+
+const _entryTemplates = [
+  _EntryTemplate(
+    'Reflection',
+    Icons.self_improvement_rounded,
+    'What went well today:\n\nWhat could be better:\n\nGrateful for:\n',
+  ),
+  _EntryTemplate(
+    'Gratitude',
+    Icons.favorite_rounded,
+    "Today I'm grateful for:\n1. \n2. \n3. ",
+  ),
+  _EntryTemplate(
+    'Meeting notes',
+    Icons.groups_rounded,
+    'Attendees:\n\nDiscussion:\n\nAction items:\n- ',
+  ),
+  _EntryTemplate(
+    'Plan',
+    Icons.checklist_rounded,
+    "Today's goals:\n- \n- \n- ",
+  ),
+  _EntryTemplate(
+    'Idea',
+    Icons.lightbulb_rounded,
+    'Idea:\n\nWhy it matters:\n\nNext step:\n',
+  ),
+];
+
 /// Bottom sheet for manually adding a history entry on any day — past dates
 /// backfill something you did offline instead of only ever capturing "now"
 /// via the mic; future dates work like a planned event, and can carry a
@@ -141,6 +179,25 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 ],
               ),
               const SizedBox(height: 12),
+              Text('Templates', style: Theme.of(context).textTheme.labelMedium),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 36,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _entryTemplates.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final template = _entryTemplates[index];
+                    return ActionChip(
+                      avatar: Icon(template.icon, size: 16),
+                      label: Text(template.label),
+                      onPressed: () => _applyTemplate(template),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _sourceTextController,
                 maxLines: 4,
@@ -185,6 +242,33 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _applyTemplate(_EntryTemplate template) async {
+    if (_sourceTextController.text.trim().isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Replace current text?'),
+          content: Text('This replaces what you\'ve written with the "${template.label}" template.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Replace'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    _sourceTextController.value = TextEditingValue(
+      text: template.text,
+      selection: TextSelection.collapsed(offset: template.text.length),
     );
   }
 
