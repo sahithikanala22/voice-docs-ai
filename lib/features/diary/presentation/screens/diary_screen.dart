@@ -7,6 +7,7 @@ import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
+import 'package:ai_voice_docs/features/calendar/presentation/widgets/add_entry_sheet.dart';
 import 'package:ai_voice_docs/features/folders/data/folder.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/history/data/history_item.dart';
@@ -47,12 +48,28 @@ class _DiaryReminder {
 
 /// A single day-by-day journal combining Voice history, Tasks, and reminders
 /// into one read-through feed — everything that happened on a given day in
-/// one place, rather than split across three separate tabs.
-class DiaryScreen extends ConsumerWidget {
+/// one place, rather than split across three separate tabs. A search field
+/// filters the feed by text, and the FAB adds a new entry for today via the
+/// same sheet the Calendar tab uses.
+class DiaryScreen extends ConsumerStatefulWidget {
   const DiaryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DiaryScreen> createState() => _DiaryScreenState();
+}
+
+class _DiaryScreenState extends ConsumerState<DiaryScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final historyAsync = ref.watch(historyControllerProvider);
     final tasksAsync = ref.watch(taskControllerProvider);
     final foldersAsync = ref.watch(folderControllerProvider);
@@ -62,6 +79,11 @@ class DiaryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Diary'),
         bottom: const GradientAppBarUnderline(),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showAddEntrySheet(context, initialDate: DateTime.now()),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Add entry'),
       ),
       body: FloatingDotsBackground(
         child: SafeArea(
@@ -80,14 +102,48 @@ class DiaryScreen extends ConsumerWidget {
                 );
               }
 
-              final days = _buildDiaryDays(historyItems, tasks);
+              final filteredHistory = _query.isEmpty
+                  ? historyItems
+                  : historyItems
+                        .where((e) => e.sourceText.toLowerCase().contains(_query))
+                        .toList();
+              final filteredTasks = _query.isEmpty
+                  ? tasks
+                  : tasks.where((t) => t.title.toLowerCase().contains(_query)).toList();
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                itemCount: days.length,
-                itemBuilder: (context, index) => _DiaryDaySection(
-                  day: days[index],
-                  folders: folders,
+              final days = _buildDiaryDays(filteredHistory, filteredTasks);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+                      decoration: const InputDecoration(
+                        hintText: 'Search diary',
+                        prefixIcon: Icon(Icons.search_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: days.isEmpty
+                          ? const EmptyState(
+                              icon: Icons.search_off_rounded,
+                              title: 'No matches',
+                              subtitle: 'Nothing in your diary matches that search.',
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 96),
+                              itemCount: days.length,
+                              itemBuilder: (context, index) => _DiaryDaySection(
+                                day: days[index],
+                                folders: folders,
+                              ),
+                            ),
+                    ),
+                  ],
                 ),
               );
             },
