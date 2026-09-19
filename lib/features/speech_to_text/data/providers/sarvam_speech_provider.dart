@@ -28,7 +28,14 @@ class SarvamSpeechProvider implements SpeechProvider {
   SarvamSpeechProvider({required this.apiKey, Dio? dio}) : _dio = dio ?? Dio();
 
   static const _endpoint = 'https://api.sarvam.ai/speech-to-text';
-  static const _model = 'saaras:v3';
+
+  /// Sarvam's newest model. Same request/response shape as saaras:v3, same
+  /// 30s cap, but it covers global English rather than only Indian English —
+  /// which matters here, since the app's `en-*` locales all map to `en-IN`.
+  ///
+  /// `mode` is deliberately not sent: it defaults to transcribe (what we
+  /// want), and the docs disagree about whether v4 accepts the parameter.
+  static const _model = 'saaras:v4';
   static const _sampleRate = 16000;
   static const _bytesPerSample = 2;
 
@@ -41,9 +48,10 @@ class SarvamSpeechProvider implements SpeechProvider {
   /// so chunk boundaries tend to land between words rather than mid-syllable.
   static const _silenceSearchSeconds = 3;
 
-  /// Sarvam only speaks Indian languages, keyed by the language part of the
-  /// app's BCP-47 locale hint. Anything else is sent as `unknown`, which asks
-  /// Sarvam to auto-detect rather than failing the request outright.
+  /// Sarvam covers the Indian languages plus English, keyed by the language
+  /// part of the app's BCP-47 locale hint. Anything else is sent as
+  /// `unknown`, which asks Sarvam to auto-detect rather than failing the
+  /// request outright.
   static const _sarvamLanguageByPrefix = <String, String>{
     'en': 'en-IN',
     'hi': 'hi-IN',

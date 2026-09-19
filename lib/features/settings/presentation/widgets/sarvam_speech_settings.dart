@@ -84,8 +84,9 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Best for Indian languages. Other languages fall back to Sarvam\'s auto-detect and may '
-            'transcribe poorly — use the on-device engine for those.',
+            'Uses Sarvam\'s saaras:v4 model — built for Indian languages, and handles English too. '
+            'Other languages fall back to auto-detect and may transcribe poorly; use the on-device '
+            'engine for those.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
