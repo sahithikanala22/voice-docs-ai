@@ -53,8 +53,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setSpeechEngine(SpeechEngine engine) => _update((s) => s.copyWith(speechEngine: engine));
 
-  Future<void> setGoogleCloudApiKey(String? apiKey) =>
-      _update((s) => s.copyWith(googleCloudApiKey: apiKey));
+  Future<void> setSarvamApiKey(String? apiKey) =>
+      _update((s) => s.copyWith(sarvamApiKey: apiKey));
 
   /// Sets (or, passing null, clears back to the device default) the
   /// preferred TTS voice for [languageCode].

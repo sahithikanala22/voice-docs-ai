@@ -3,21 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/settings_providers.dart';
 
-/// API key entry for the Google Cloud speech engine — its own small
-/// stateful widget (rather than inline in [SettingsScreen]) so the
+/// API key entry for the Sarvam AI speech engine — its own small stateful
+/// widget (rather than inline in [SettingsScreen]) so the
 /// [TextEditingController] survives the parent rebuilding on every settings
 /// change without losing cursor position or getting fed a "controller and
 /// value changed" assertion.
-class GoogleCloudSpeechSettings extends ConsumerStatefulWidget {
-  const GoogleCloudSpeechSettings({super.key, required this.apiKey});
+class SarvamSpeechSettings extends ConsumerStatefulWidget {
+  const SarvamSpeechSettings({super.key, required this.apiKey});
 
   final String? apiKey;
 
   @override
-  ConsumerState<GoogleCloudSpeechSettings> createState() => _GoogleCloudSpeechSettingsState();
+  ConsumerState<SarvamSpeechSettings> createState() => _SarvamSpeechSettingsState();
 }
 
-class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSettings> {
+class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
   late final TextEditingController _controller = TextEditingController(text: widget.apiKey);
   bool _obscure = true;
 
@@ -39,7 +39,7 @@ class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSet
             controller: _controller,
             obscureText: _obscure,
             decoration: InputDecoration(
-              labelText: 'Google Cloud API key',
+              labelText: 'Sarvam AI API key',
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                 tooltip: _obscure ? 'Show key' : 'Hide key',
@@ -51,9 +51,14 @@ class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSet
           ),
           const SizedBox(height: 10),
           Text(
-            'From Google Cloud Console: enable the "Cloud Speech-to-Text API", create an API key, then '
-            'restrict it to Android apps using package com.aivoicedocs.app. Stored only on this device '
-            '— never bundled with the app or sent anywhere except Google\'s API.',
+            'From dashboard.sarvam.ai: sign in and copy your API subscription key. Stored only on '
+            'this device — never bundled with the app or sent anywhere except Sarvam\'s API.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Best for Indian languages. Other languages fall back to Sarvam\'s auto-detect and may '
+            'transcribe poorly — use the on-device engine for those.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
@@ -72,6 +77,6 @@ class _GoogleCloudSpeechSettingsState extends ConsumerState<GoogleCloudSpeechSet
 
   void _save() {
     final value = _controller.text.trim();
-    ref.read(settingsControllerProvider.notifier).setGoogleCloudApiKey(value.isEmpty ? null : value);
+    ref.read(settingsControllerProvider.notifier).setSarvamApiKey(value.isEmpty ? null : value);
   }
 }

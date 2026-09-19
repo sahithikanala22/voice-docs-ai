@@ -3,8 +3,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 
-import '../../data/providers/google_cloud_speech_provider.dart';
 import '../../data/providers/on_device_speech_provider.dart';
+import '../../data/providers/sarvam_speech_provider.dart';
 import '../../data/providers/speech_provider.dart';
 import '../../data/repositories/speech_repository_impl.dart';
 import '../../domain/recognition_state.dart';
@@ -13,9 +13,8 @@ import '../../domain/speech_repository.dart';
 
 /// Picks the active [SpeechProvider] from Settings' `speechEngine` choice —
 /// [SpeechEngine.onDevice] (default, free, offline) or
-/// [SpeechEngine.googleCloud] (needs an API key, see
-/// [GoogleCloudSpeechProvider]'s doc comment for why it's batch-only rather
-/// than live-streaming).
+/// [SpeechEngine.sarvam] (needs an API key, see [SarvamSpeechProvider]'s doc
+/// comment for why it's upload-and-wait rather than live-streaming).
 ///
 /// A Vosk-backed hybrid provider (`vosk_flutter_service`; offline, reliable
 /// live captions for the languages it has a model for) was tried here and
@@ -30,8 +29,8 @@ import '../../domain/speech_repository.dart';
 /// the dependency itself had to come out.
 final speechProviderImplProvider = Provider<SpeechProvider>((ref) {
   final settings = ref.watch(settingsControllerProvider).value;
-  if (settings?.speechEngine == SpeechEngine.googleCloud) {
-    return GoogleCloudSpeechProvider(apiKey: settings?.googleCloudApiKey ?? '');
+  if (settings?.speechEngine == SpeechEngine.sarvam) {
+    return SarvamSpeechProvider(apiKey: settings?.sarvamApiKey ?? '');
   }
   return OnDeviceSpeechProvider();
 });

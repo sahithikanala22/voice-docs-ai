@@ -21,12 +21,18 @@ abstract class AppSettings with _$AppSettings {
     /// the app's own brand color — off by default, see `AppTheme.light`.
     @Default(false) bool useDynamicColor,
     /// Which backend transcribes speech — see [SpeechEngine].
-    @Default(SpeechEngine.onDevice) SpeechEngine speechEngine,
-    /// User-supplied Google Cloud Speech-to-Text API key, only used when
-    /// [speechEngine] is [SpeechEngine.googleCloud]. Stored locally
-    /// (SharedPreferences) only — never bundled in the app or committed to
-    /// source, so it can't leak via the APK or the repo.
-    String? googleCloudApiKey,
+    ///
+    /// [JsonKey.unknownEnumValue] keeps an old saved value from a since
+    /// removed engine (the app used to offer Google Cloud) from throwing on
+    /// decode, which would otherwise reset every other setting to default.
+    @JsonKey(unknownEnumValue: SpeechEngine.onDevice)
+    @Default(SpeechEngine.onDevice)
+    SpeechEngine speechEngine,
+    /// User-supplied Sarvam AI API key, only used when [speechEngine] is
+    /// [SpeechEngine.sarvam]. Stored locally (SharedPreferences) only —
+    /// never bundled in the app or committed to source, so it can't leak via
+    /// the APK or the repo.
+    String? sarvamApiKey,
     /// The chosen text-to-speech voice name per language code — a language
     /// with no entry just uses the device's default voice for that
     /// language. Keyed by `Language.code` (not the region-qualified locale)

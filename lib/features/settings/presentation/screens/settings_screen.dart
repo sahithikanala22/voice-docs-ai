@@ -20,9 +20,9 @@ import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart'
 import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
 
 import '../providers/settings_providers.dart';
-import '../widgets/google_cloud_speech_settings.dart';
 import '../widgets/palette_picker.dart';
 import '../widgets/paper_style_picker.dart';
+import '../widgets/sarvam_speech_settings.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
 
@@ -207,8 +207,8 @@ class SettingsScreen extends ConsumerWidget {
                                 label: Text('On-device'),
                               ),
                               ButtonSegment(
-                                value: SpeechEngine.googleCloud,
-                                label: Text('Google Cloud'),
+                                value: SpeechEngine.sarvam,
+                                label: Text('Sarvam AI'),
                               ),
                             ],
                             selected: {settings.speechEngine},
@@ -219,7 +219,7 @@ class SettingsScreen extends ConsumerWidget {
                           Text(
                             settings.speechEngine == SpeechEngine.onDevice
                                 ? 'Free and works offline. Reliability depends on your phone\'s own speech recognizer.'
-                                : 'Generally more accurate. Needs internet and your own API key; bills per use past the free tier.',
+                                : 'Much stronger on Indian languages. Needs internet and your own API key; bills per use.',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -230,11 +230,9 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    if (settings.speechEngine == SpeechEngine.googleCloud) ...[
+                    if (settings.speechEngine == SpeechEngine.sarvam) ...[
                       const Divider(height: 1),
-                      GoogleCloudSpeechSettings(
-                        apiKey: settings.googleCloudApiKey,
-                      ),
+                      SarvamSpeechSettings(apiKey: settings.sarvamApiKey),
                     ],
                   ],
                 ),

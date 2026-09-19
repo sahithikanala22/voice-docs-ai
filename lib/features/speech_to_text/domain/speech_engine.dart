@@ -4,13 +4,11 @@ enum SpeechEngine {
   /// the phone's own OS/OEM speech recognizer.
   onDevice,
 
-  /// Google Cloud Speech-to-Text's batch REST endpoint — needs an API key
-  /// (Settings) and an internet connection, and bills per use past the free
-  /// tier. Trades the on-device engine's live partial captions for a single,
-  /// generally more accurate transcript delivered right after you stop
-  /// talking (this is Google's batch `recognize` endpoint, not the
-  /// streaming one — true live streaming needs OAuth/service-account
-  /// credentials that can't safely ship in the app, so it's out of scope
-  /// without a backend relay).
-  googleCloud,
+  /// Sarvam AI's speech-to-text REST endpoint — needs an API key (Settings)
+  /// and an internet connection, and bills per use. Much stronger on Indian
+  /// languages than a typical on-device recognizer, at the cost of the live
+  /// partial captions: the transcript arrives right after you stop talking,
+  /// because this is an upload-and-wait REST call rather than a streaming
+  /// session.
+  sarvam,
 }
