@@ -39,6 +39,12 @@ migrate_working_dir/
 /android/build/
 /coverage/
 
+# Secrets — .env holds the Sarvam API key and must never be committed.
+# .env.example documents the keys without their values.
+.env
+.env.*
+!.env.example
+
 # Symbolication related
 app.*.symbols
 

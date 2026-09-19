@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'package:ai_voice_docs/core/config/app_env.dart';
+import 'package:ai_voice_docs/features/settings/domain/app_settings.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 
 import '../../data/providers/on_device_speech_provider.dart';
@@ -30,10 +32,18 @@ import '../../domain/speech_repository.dart';
 final speechProviderImplProvider = Provider<SpeechProvider>((ref) {
   final settings = ref.watch(settingsControllerProvider).value;
   if (settings?.speechEngine == SpeechEngine.sarvam) {
-    return SarvamSpeechProvider(apiKey: settings?.sarvamApiKey ?? '');
+    return SarvamSpeechProvider(apiKey: sarvamApiKey(settings));
   }
   return OnDeviceSpeechProvider();
 });
+
+/// The Sarvam key actually in force: whatever was typed in Settings, else
+/// the one bundled in `.env`. Settings wins so a key can be swapped on the
+/// device without a rebuild.
+String sarvamApiKey(AppSettings? settings) {
+  final fromSettings = settings?.sarvamApiKey?.trim() ?? '';
+  return fromSettings.isNotEmpty ? fromSettings : AppEnv.sarvamApiKey;
+}
 
 final speechRepositoryProvider = Provider<SpeechRepository>((ref) {
   return SpeechRepositoryImpl(ref.watch(speechProviderImplProvider));

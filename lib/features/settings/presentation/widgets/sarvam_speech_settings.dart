@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:ai_voice_docs/core/config/app_env.dart';
+
 import '../providers/settings_providers.dart';
 
 /// API key entry for the Sarvam AI speech engine — its own small stateful
@@ -30,16 +32,38 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final hasBundledKey = AppEnv.sarvamApiKey.isNotEmpty;
+    final usingBundledKey = hasBundledKey && (widget.apiKey?.trim().isEmpty ?? true);
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (usingBundledKey) ...[
+            Row(
+              children: [
+                Icon(Icons.check_circle_rounded, size: 18, color: scheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Using the key from your .env file',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: scheme.primary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
           TextField(
             controller: _controller,
             obscureText: _obscure,
             decoration: InputDecoration(
               labelText: 'Sarvam AI API key',
+              hintText: usingBundledKey ? 'Leave blank to use the .env key' : null,
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                 tooltip: _obscure ? 'Show key' : 'Hide key',
@@ -51,8 +75,11 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
           ),
           const SizedBox(height: 10),
           Text(
-            'From dashboard.sarvam.ai: sign in and copy your API subscription key. Stored only on '
-            'this device — never bundled with the app or sent anywhere except Sarvam\'s API.',
+            hasBundledKey
+                ? 'A key here overrides the one in .env, so you can swap keys without rebuilding. '
+                      'Clear the field to go back to the .env key.'
+                : 'From dashboard.sarvam.ai: sign in and copy your API subscription key. Stored only '
+                      'on this device — never sent anywhere except Sarvam\'s API.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),

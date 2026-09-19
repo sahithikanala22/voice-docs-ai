@@ -58,6 +58,7 @@ dependencies:
   # Optional Material You dynamic color
   dynamic_color: ^1.7.0
   local_auth: ^3.0.2
+  flutter_dotenv: ^6.0.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,3 +82,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/icon.png
+    # Holds SARVAM_API_KEY. Gitignored, so it won't exist on a fresh clone —
+    # the trailing slash form tolerates that (a bare `- .env` would fail the
+    # build outright), and main.dart treats a missing file as "no key".
+    - .env
