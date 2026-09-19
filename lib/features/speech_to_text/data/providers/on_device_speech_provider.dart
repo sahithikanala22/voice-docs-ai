@@ -1,4 +1,3 @@
-import 'package:clock/clock.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -29,32 +28,27 @@ import 'speech_provider.dart';
 /// The last one is easy to miss precisely because nothing looks like a
 /// failure: no error fires, no result arrives, the mic just stops.
 ///
-/// Only an explicit [stopListening]/[cancel] — or an error that can never
-/// succeed on retry — ends the caller's session.
+/// Only an explicit [stopListening]/[cancel], or an error that genuinely can
+/// never succeed on retry (no permission, unsupported language), ends the
+/// caller's session — deliberately with no "give up after N failures" cap.
+/// An earlier version had one, meant to protect against a stuck recognizer
+/// spinning forever; in practice it was what made the mic cut itself off on
+/// real devices, since a handful of restarts landing under the fast-failure
+/// threshold (OS throttling a rapid rebind, a slow IPC round-trip, nothing
+/// actually wrong) was enough to trip it. Retrying forever is the right
+/// trade here: this only runs while the user is on the recording screen
+/// looking at a Stop button, so a recognizer that's genuinely broken gets
+/// noticed and stopped by hand in a few seconds either way.
 class OnDeviceSpeechProvider implements SpeechProvider {
   /// Errors retrying can't fix — reported straight away. Everything else is
   /// retried, including the `error_busy` / `error_client` Android throws when
-  /// a restart overlaps the previous session's teardown; treating those as
-  /// fatal is what made the mic switch itself off.
+  /// a restart overlaps the previous session's teardown.
   static const _permanentErrors = {
     'error_insufficient_permissions',
     'error_permission',
     'error_language_not_supported',
     'error_language_unavailable',
   };
-
-  static const _silenceErrors = {'error_no_match', 'error_speech_timeout'};
-
-  /// A healthy session ends on silence, which takes about `pauseFor` (2s). One
-  /// that ends sooner than this after starting didn't time out — the
-  /// recognizer refused to run.
-  static const _fastFailureThreshold = Duration(milliseconds: 700);
-
-  /// Back-to-back fast failures tolerated before giving up. This counts only
-  /// *fast* failures, never ordinary silence restarts, so someone pausing to
-  /// think for a minute doesn't get cut off — while a recognizer stuck in a
-  /// refuse-to-start loop still can't spin forever and drain the battery.
-  static const _maxFastFailures = 5;
 
   /// Breathing room between restarts so a failure loop can't spin hot.
   static const _restartDelay = Duration(milliseconds: 150);
@@ -74,13 +68,6 @@ class OnDeviceSpeechProvider implements SpeechProvider {
   /// racing to restart the same session, and against the `cancel()` inside
   /// [_listenOnce] re-entering through its own status callback.
   bool _restarting = false;
-  DateTime? _sessionStartedAt;
-  int _fastFailures = 0;
-
-  /// The most recent non-silence error, so that if restarts do give up the
-  /// user sees the real cause (e.g. no speech service installed) rather than
-  /// a generic message.
-  String? _lastErrorCode;
   String _committedTranscript = '';
   String _activeLocaleId = '';
 
@@ -113,7 +100,6 @@ class OnDeviceSpeechProvider implements SpeechProvider {
       _currentOnError?.call(_friendlyError(error.errorMsg));
       return;
     }
-    if (!_silenceErrors.contains(error.errorMsg)) _lastErrorCode = error.errorMsg;
     _restartUnlessStopped();
   }
 
@@ -121,26 +107,6 @@ class OnDeviceSpeechProvider implements SpeechProvider {
   /// three of them can't stack up multiple overlapping restarts.
   Future<void> _restartUnlessStopped() async {
     if (_stopRequested || _restarting) return;
-
-    final startedAt = _sessionStartedAt;
-    final ranFor = startedAt == null ? Duration.zero : clock.now().difference(startedAt);
-    if (ranFor < _fastFailureThreshold) {
-      if (++_fastFailures > _maxFastFailures) {
-        _stopRequested = true;
-        final code = _lastErrorCode;
-        _currentOnError?.call(
-          code != null
-              ? _friendlyError(code)
-              : 'Speech recognition stopped unexpectedly. Tap the mic to try again.',
-        );
-        return;
-      }
-    } else {
-      // This session ran its natural course, so the recognizer is healthy no
-      // matter how many times it has restarted.
-      _fastFailures = 0;
-      _lastErrorCode = null;
-    }
 
     _restarting = true;
     try {
@@ -220,8 +186,6 @@ class OnDeviceSpeechProvider implements SpeechProvider {
     _currentOnSoundLevel = onSoundLevel;
     _currentOnError = onError;
     _stopRequested = false;
-    _fastFailures = 0;
-    _lastErrorCode = null;
     _committedTranscript = '';
 
     if (!_initialized) {
@@ -243,7 +207,6 @@ class OnDeviceSpeechProvider implements SpeechProvider {
     // of a stray `error_client` on the next start.
     await _speech.cancel();
 
-    _sessionStartedAt = clock.now();
     await _speech.listen(
       onResult: (SpeechRecognitionResult result) {
         final segment = result.recognizedWords;

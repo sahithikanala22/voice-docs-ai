@@ -148,19 +148,22 @@ void main() {
     });
   });
 
-  test('a recognizer that refuses to run gives up instead of looping forever', () {
+  test('a recognizer that fails instantly, over and over, is still retried forever', () {
+    // The exact scenario the previous "give up after N fast failures" cap
+    // existed for — and the exact scenario that turned out to trip on real
+    // devices for reasons that weren't actually a stuck recognizer (OS
+    // throttling a rapid rebind, etc). There is deliberately no cap anymore:
+    // only stopListening()/cancel() or a permanent error should end this.
     fakeAsync((async) {
       start(async);
       // Each session dies instantly — no time passes before the next error.
-      for (var i = 0; i < 20; i++) {
+      for (var i = 0; i < 50; i++) {
         fake.sendError('error_client');
         async.elapse(const Duration(milliseconds: 200));
       }
 
-      expect(errors, hasLength(1), reason: 'should stop and report exactly once');
-      // The real cause is surfaced, not a generic message.
-      expect(errors.single, contains('speech recognizer rejected'));
-      expect(fake.listenCount, lessThan(10));
+      expect(fake.listenCount, 51, reason: 'must keep retrying no matter how many fast failures happen');
+      expect(errors, isEmpty, reason: 'must never surface a "gave up" error on its own');
     });
   });
 
