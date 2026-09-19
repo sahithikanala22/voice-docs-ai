@@ -1,5 +1,7 @@
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
@@ -45,6 +47,13 @@ class AiVoiceDocsApp extends ConsumerWidget {
           theme: AppTheme.light(dynamicScheme: lightScheme, seed: seed),
           darkTheme: AppTheme.dark(dynamicScheme: darkScheme, seed: seed),
           themeMode: themeMode,
+          // Required by the diary editor's rich-text toolbar (flutter_quill).
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
           routerConfig: ref.watch(appRouterProvider),
         );
       },

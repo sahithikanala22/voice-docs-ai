@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +10,7 @@ import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import '../../data/diary_entry.dart';
 import '../../domain/diary_theme.dart';
 import '../providers/diary_providers.dart';
+import '../widgets/diary_document.dart';
 import '../widgets/diary_page_background.dart';
 import '../widgets/diary_photo.dart';
 
@@ -121,12 +123,9 @@ class DiaryEntryScreen extends ConsumerWidget {
                         const SizedBox(height: 18),
                         _PhotoGallery(photos: entry.photos, style: style),
                       ],
-                      if (entry.body.trim().isNotEmpty) ...[
+                      if (entry.body.trim().isNotEmpty || entry.bodyDelta != null) ...[
                         const SizedBox(height: 18),
-                        SelectableText(
-                          entry.body,
-                          style: textTheme.bodyLarge?.copyWith(color: style.ink, height: 1.7),
-                        ),
+                        _EntryBody(entry: entry, style: style),
                       ],
                     ],
                   ),
@@ -176,6 +175,48 @@ class DiaryEntryScreen extends ConsumerWidget {
 
 /// One photo full width; several in a two-column grid. Tapping opens the
 /// fullscreen viewer at that photo.
+/// Renders the entry body: rich text (with any bold/italic/underline/color)
+/// when a delta was saved, otherwise the older plain-text entries just get
+/// selectable text — no reason to spin up the Quill machinery for content
+/// that was never rich to begin with.
+class _EntryBody extends StatelessWidget {
+  const _EntryBody({required this.entry, required this.style});
+
+  final DiaryEntry entry;
+  final DiaryThemeStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    final delta = entry.bodyDelta;
+    if (delta == null) {
+      return SelectableText(
+        entry.body,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: style.ink, height: 1.7),
+      );
+    }
+
+    final controller = QuillController(
+      document: diaryDocumentFrom(bodyDelta: delta, plainBody: entry.body),
+      selection: const TextSelection.collapsed(offset: 0),
+      readOnly: true,
+    );
+
+    return IconTheme(
+      data: IconThemeData(color: style.ink),
+      child: DefaultTextStyle(
+        style: (Theme.of(context).textTheme.bodyLarge ?? const TextStyle()).copyWith(
+          color: style.ink,
+          height: 1.7,
+        ),
+        child: QuillEditor.basic(
+          controller: controller,
+          config: const QuillEditorConfig(scrollable: false, expands: false, padding: EdgeInsets.zero),
+        ),
+      ),
+    );
+  }
+}
+
 class _PhotoGallery extends StatelessWidget {
   const _PhotoGallery({required this.photos, required this.style});
 

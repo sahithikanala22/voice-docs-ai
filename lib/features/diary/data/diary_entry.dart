@@ -23,7 +23,17 @@ abstract class DiaryEntry with _$DiaryEntry {
     /// yesterday. Sorting and grouping use this, not [createdAt].
     required DateTime date,
     @Default('') String title,
+
+    /// Plain-text mirror of [bodyDelta] — used for search and list previews,
+    /// which have no reason to parse rich text just to match/snippet it. Kept
+    /// in sync on every save.
     @Default('') String body,
+
+    /// The body as a JSON-encoded Quill Delta (bold/italic/underline/etc.),
+    /// null for an entry with no styling — either never written, or written
+    /// before this field existed, in which case [body] is what it has and
+    /// the editor starts a plain document from that.
+    String? bodyDelta,
 
     /// File names inside the diary photo directory (see `DiaryPhotoStore`),
     /// not absolute paths — the app's storage path can change across

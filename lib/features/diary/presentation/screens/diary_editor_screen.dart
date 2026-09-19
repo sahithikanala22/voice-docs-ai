@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,6 +16,7 @@ import '../../data/diary_entry.dart';
 import '../../domain/diary_mood.dart';
 import '../../domain/diary_theme.dart';
 import '../providers/diary_providers.dart';
+import '../widgets/diary_document.dart';
 import '../widgets/diary_page_background.dart';
 import '../widgets/diary_photo.dart';
 
@@ -40,7 +42,9 @@ class DiaryEditorScreen extends ConsumerStatefulWidget {
 
 class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
   final _title = TextEditingController();
-  final _body = TextEditingController();
+  late final QuillController _bodyController;
+  final _bodyFocusNode = FocusNode();
+  final _bodyScrollController = ScrollController();
   final _picker = ImagePicker();
 
   DiaryEntry? _existing;
@@ -58,7 +62,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
   final Set<String> _addedThisSession = {};
 
   late final String _initialTitle;
-  late final String _initialBody;
+  late final String _initialBodyDelta;
   late final DiaryMood? _initialMood;
   late final DiaryTheme _initialTheme;
   late final DateTime _initialDate;
@@ -66,9 +70,10 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
   bool _saving = false;
   bool _busyPicking = false;
 
-  /// Body text as it was when dictation started, so spoken words are appended
-  /// to what's already written instead of replacing it.
-  String _dictationPrefix = '';
+  /// Plain-text offset (Quill document, excluding its trailing newline)
+  /// where dictation started — each transcript update replaces from here to
+  /// the current end, rather than replacing the whole entry.
+  int _dictationStartOffset = 0;
   late final SpeechController _speech;
 
   /// Mirrors the mic state for [dispose], which must not touch `ref`.
@@ -84,20 +89,24 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
     _existing = existing;
     _date = DateUtils.dateOnly(existing?.date ?? DateTime.now());
     _title.text = existing?.title ?? '';
-    _body.text = existing?.body ?? '';
+    _bodyController = QuillController(
+      document: diaryDocumentFrom(bodyDelta: existing?.bodyDelta, plainBody: existing?.body ?? ''),
+      selection: const TextSelection.collapsed(offset: 0),
+    );
     _mood = existing?.mood;
     _theme = existing?.theme ?? DiaryTheme.classic;
     _photos.addAll(existing?.photos ?? const []);
     _originalPhotos = List.unmodifiable(existing?.photos ?? const []);
 
     _initialTitle = _title.text;
-    _initialBody = _body.text;
+    _initialBodyDelta = jsonEncodeDelta(_bodyController.document);
     _initialMood = _mood;
     _initialTheme = _theme;
     _initialDate = _date;
 
     _title.addListener(_rebuild);
-    _body.addListener(_rebuild);
+    _bodyController.addListener(_rebuild);
+    _bodyFocusNode.addListener(_rebuild);
   }
 
   void _rebuild() => setState(() {});
@@ -108,20 +117,23 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
     // would keep the mic recording in the background.
     if (_listening) _speech.stopListening();
     _title.dispose();
-    _body.dispose();
+    _bodyController.dispose();
+    _bodyFocusNode.dispose();
+    _bodyScrollController.dispose();
     super.dispose();
   }
 
   bool get _isDirty =>
       _title.text != _initialTitle ||
-      _body.text != _initialBody ||
+      jsonEncodeDelta(_bodyController.document) != _initialBodyDelta ||
       _mood != _initialMood ||
       _theme != _initialTheme ||
       _date != _initialDate ||
       _photos.length != _originalPhotos.length ||
       !_photos.every(_originalPhotos.contains);
 
-  bool get _isBlank => _title.text.trim().isEmpty && _body.text.trim().isEmpty && _photos.isEmpty;
+  bool get _isBlank =>
+      _title.text.trim().isEmpty && _bodyController.document.isEmpty() && _photos.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -194,25 +206,43 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
                           _PhotoStrip(photos: _photos, style: style, onRemove: _removePhoto),
                         ],
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _body,
-                          maxLines: null,
-                          minLines: 10,
-                          keyboardType: TextInputType.multiline,
-                          textCapitalization: TextCapitalization.sentences,
-                          cursorColor: style.accent,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: style.ink,
-                            height: 1.6,
-                          ),
-                          decoration: _plainDecoration(
-                            recognition.isListening ? 'Listening…' : 'Dear diary…',
-                            style,
+                        IconTheme(
+                          data: IconThemeData(color: style.ink),
+                          child: DefaultTextStyle(
+                            style: (Theme.of(context).textTheme.bodyLarge ?? const TextStyle()).copyWith(
+                              color: style.ink,
+                              height: 1.6,
+                            ),
+                            child: QuillEditor.basic(
+                              controller: _bodyController,
+                              focusNode: _bodyFocusNode,
+                              scrollController: _bodyScrollController,
+                              config: QuillEditorConfig(
+                                scrollable: false,
+                                expands: false,
+                                padding: EdgeInsets.zero,
+                                placeholder: recognition.isListening ? 'Listening…' : 'Dear diary…',
+                                customStyles: DefaultStyles(
+                                  placeHolder: DefaultTextBlockStyle(
+                                    TextStyle(color: style.subtle.withValues(alpha: 0.7)),
+                                    const HorizontalSpacing(0, 0),
+                                    const VerticalSpacing(0, 0),
+                                    const VerticalSpacing(0, 0),
+                                    null,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
+                        // The Quill editor sizes to its content (scrollable:
+                        // false) so it can be short — pad the page out to a
+                        // comfortable writing area regardless.
+                        const SizedBox(height: 240),
                       ],
                     ),
                   ),
+                  if (_bodyFocusNode.hasFocus) _StyleToolbar(style: style, controller: _bodyController),
                   _Toolbar(
                     style: style,
                     isListening: recognition.isListening,
@@ -352,7 +382,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
     );
     if (template == null || !mounted) return;
 
-    if (_body.text.trim().isNotEmpty) {
+    if (!_bodyController.document.isEmpty()) {
       final replace = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
@@ -366,9 +396,12 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
       );
       if (replace != true) return;
     }
-    _body.value = TextEditingValue(
-      text: template.text,
-      selection: TextSelection.collapsed(offset: template.text.length),
+    // A template is a fresh, unstyled skeleton — any formatting on the
+    // replaced text wouldn't mean anything applied to different words.
+    _bodyController.document = diaryDocumentFrom(plainBody: template.text);
+    _bodyController.updateSelection(
+      TextSelection.collapsed(offset: template.text.length),
+      ChangeSource.local,
     );
   }
 
@@ -385,22 +418,42 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
     );
   }
 
+  /// The document's plain-text length excluding the trailing newline every
+  /// Quill document ends with — i.e. the offset right after the last typed
+  /// character.
+  int get _bodyEndOffset => _bodyController.document.toPlainText().length - 1;
+
   Future<void> _toggleDictation(bool isListening) async {
     if (isListening) {
       await _speech.stopListening();
       return;
     }
-    _dictationPrefix = _body.text;
+    var offset = _bodyEndOffset;
+    final endsWithSpace = offset > 0 &&
+        RegExp(r'\s$').hasMatch(_bodyController.document.toPlainText().substring(0, offset));
+    if (offset > 0 && !endsWithSpace) {
+      _bodyController.replaceText(offset, 0, ' ', TextSelection.collapsed(offset: offset + 1));
+      offset += 1;
+    }
+    _dictationStartOffset = offset;
     final code = ref.read(settingsControllerProvider).value?.sourceLanguageCode;
     final locale = code == null ? 'en-US' : languageByCode(code).localeHint;
     await _speech.startListening(locale);
   }
 
+  /// Replaces everything from [_dictationStartOffset] to the current end
+  /// with [transcript] — safe because that span is exactly what dictation
+  /// itself has written since starting; nothing else touches it while
+  /// listening (the body field keeps focus, but typing while dictating isn't
+  /// a flow this needs to support).
   void _applyDictation(String transcript) {
-    final prefix = _dictationPrefix;
-    final needsSpace = prefix.isNotEmpty && !RegExp(r'\s$').hasMatch(prefix);
-    final text = transcript.isEmpty ? prefix : '$prefix${needsSpace ? ' ' : ''}$transcript';
-    _body.value = TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+    final tailLength = _bodyEndOffset - _dictationStartOffset;
+    _bodyController.replaceText(
+      _dictationStartOffset,
+      tailLength,
+      transcript,
+      TextSelection.collapsed(offset: _dictationStartOffset + transcript.length),
+    );
   }
 
   Future<bool> _confirmDiscard() async {
@@ -431,11 +484,13 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
       await _speech.stopListening();
     }
 
+    final bodyFields = diaryBodyFieldsFrom(_bodyController);
     final base = _existing ?? DiaryEntry.create(date: _date);
     final entry = base.copyWith(
       date: _date,
       title: _title.text.trim(),
-      body: _body.text.trimRight(),
+      body: bodyFields.plainText,
+      bodyDelta: bodyFields.delta,
       photos: List.of(_photos),
       mood: _mood,
       theme: _theme,
@@ -645,6 +700,66 @@ class _PhotoStrip extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Bold/italic/underline/strikethrough/color for whatever text is selected
+/// in the body — shown above the regular toolbar only while the body field
+/// has focus, so it's out of the way while doing anything else (title, mood,
+/// photos).
+class _StyleToolbar extends StatelessWidget {
+  const _StyleToolbar({required this.style, required this.controller});
+
+  final DiaryThemeStyle style;
+  final QuillController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      decoration: BoxDecoration(
+        color: (style.isDark ? Colors.black : Colors.white).withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: style.subtle.withValues(alpha: 0.2)),
+      ),
+      child: IconTheme(
+        data: IconThemeData(color: style.ink),
+        child: QuillSimpleToolbar(
+          controller: controller,
+          config: const QuillSimpleToolbarConfig(
+            color: Colors.transparent,
+            multiRowsDisplay: false,
+            showDividers: false,
+            showFontFamily: false,
+            showFontSize: false,
+            showBoldButton: true,
+            showItalicButton: true,
+            showSmallButton: false,
+            showUnderLineButton: true,
+            showLineHeightButton: false,
+            showStrikeThrough: true,
+            showInlineCode: false,
+            showColorButton: true,
+            showBackgroundColorButton: false,
+            showClearFormat: true,
+            showAlignmentButtons: false,
+            showHeaderStyle: false,
+            showListNumbers: false,
+            showListBullets: false,
+            showListCheck: false,
+            showCodeBlock: false,
+            showQuote: false,
+            showIndent: false,
+            showLink: false,
+            showUndo: false,
+            showRedo: false,
+            showSearchButton: false,
+            showSubscript: false,
+            showSuperscript: false,
+          ),
+        ),
       ),
     );
   }
