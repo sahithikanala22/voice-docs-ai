@@ -5,6 +5,7 @@ import 'package:flutter_quill/flutter_quill.dart' show FlutterQuillLocalizations
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/providers/app_badge_providers.dart';
 import 'package:ai_voice_docs/core/router/app_router.dart';
 import 'package:ai_voice_docs/core/theme/app_theme.dart';
 import 'package:ai_voice_docs/core/theme/appearance.dart';
@@ -20,6 +21,10 @@ class AiVoiceDocsApp extends ConsumerWidget {
     final themeMode = settings?.themeMode ?? ThemeMode.system;
     final useDynamicColor = settings?.useDynamicColor ?? false;
     final seed = (settings?.palette ?? AppPalette.indigo).seed;
+
+    // Side-effect only — keeps the launcher badge in sync for the app's
+    // whole lifetime, not tied to whatever screen happens to be showing.
+    ref.watch(appBadgeWatcherProvider);
 
     // Wait for the persisted app-lock account to load once before building
     // the router, so the redirect logic never has to guess and the user
