@@ -15,11 +15,16 @@ class EmptyState extends StatelessWidget {
     required this.icon,
     required this.title,
     this.subtitle,
+    this.action,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
+
+  /// Optional call to action shown under the text, e.g. "Write your first
+  /// entry".
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +69,10 @@ class EmptyState extends StatelessWidget {
                             .bodyMedium
                             ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
+                    ],
+                    if (action != null) ...[
+                      const SizedBox(height: 20),
+                      action!,
                     ],
                   ],
                 ),

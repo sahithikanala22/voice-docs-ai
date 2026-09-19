@@ -19,4 +19,5 @@ class PrefsKeys {
   static const String folders = 'voxi.folders.v1';
   static const String appLockAccount = 'voxi.app_lock_account.v1';
   static const String tasks = 'voxi.tasks.v1';
+  static const String diary = 'voxi.diary.v1';
 }

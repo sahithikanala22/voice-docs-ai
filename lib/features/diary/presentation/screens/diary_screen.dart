@@ -3,54 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
-import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
-import 'package:ai_voice_docs/features/calendar/presentation/widgets/add_entry_sheet.dart';
-import 'package:ai_voice_docs/features/folders/data/folder.dart';
-import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
-import 'package:ai_voice_docs/features/history/data/history_item.dart';
-import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
-import 'package:ai_voice_docs/features/history/presentation/widgets/history_detail_sheet.dart';
-import 'package:ai_voice_docs/features/history/presentation/widgets/history_tile.dart';
-import 'package:ai_voice_docs/features/history/presentation/widgets/share_format_sheet.dart';
-import 'package:ai_voice_docs/features/tasks/data/task.dart';
-import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 
-/// One day's worth of diary content: voice entries recorded that day, tasks
-/// added that day, and reminders (from either source) landing on that day —
-/// a reminder is only surfaced here when it falls on a *different* day than
-/// the item's own creation, since a same-day reminder would otherwise just
-/// duplicate the entry/task row directly below it.
-class _DiaryDay {
-  _DiaryDay(this.date);
+import '../../data/diary_entry.dart';
+import '../providers/diary_providers.dart';
+import '../widgets/diary_entry_card.dart';
 
-  final DateTime date;
-  final List<HistoryItem> entries = [];
-  final List<Task> tasksCreated = [];
-  final List<_DiaryReminder> reminders = [];
-}
-
-class _DiaryReminder {
-  const _DiaryReminder({
-    required this.time,
-    required this.label,
-    required this.isTask,
-    this.historyItem,
-  });
-
-  final DateTime time;
-  final String label;
-  final bool isTask;
-  final HistoryItem? historyItem;
-}
-
-/// A single day-by-day journal combining Voice history, Tasks, and reminders
-/// into one read-through feed — everything that happened on a given day in
-/// one place, rather than split across three separate tabs. A search field
-/// filters the feed by text, and the FAB adds a new entry for today via the
-/// same sheet the Calendar tab uses.
+/// The diary: a personal journal of composed entries — photos, a mood and a
+/// themed page each. Unlike History (quick voice captures), nothing lands here
+/// unless you write it here.
 class DiaryScreen extends ConsumerStatefulWidget {
   const DiaryScreen({super.key});
 
@@ -70,10 +33,7 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final historyAsync = ref.watch(historyControllerProvider);
-    final tasksAsync = ref.watch(taskControllerProvider);
-    final foldersAsync = ref.watch(folderControllerProvider);
-    final folders = foldersAsync.value ?? const [];
+    final entriesAsync = ref.watch(diaryControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -81,67 +41,63 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
         bottom: const GradientAppBarUnderline(),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showAddEntrySheet(context, initialDate: DateTime.now()),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add entry'),
+        onPressed: () => context.push('/diary-entry/new'),
+        icon: const Icon(Icons.edit_rounded),
+        label: const Text('New entry'),
       ),
       body: PaperBackground(
         child: SafeArea(
-          child: historyAsync.when(
+          child: entriesAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) =>
-                Center(child: Text('Could not load diary: $err')),
-            data: (historyItems) {
-              final tasks = tasksAsync.value ?? const [];
-              if (historyItems.isEmpty && tasks.isEmpty) {
-                return const EmptyState(
+            error: (err, _) => Center(child: Text('Could not load your diary: $err')),
+            data: (entries) {
+              if (entries.isEmpty) {
+                return EmptyState(
                   icon: Icons.auto_stories_outlined,
-                  title: 'Your diary is empty',
-                  subtitle:
-                      'Everything you record, save, or complete shows up here, organized day by day.',
+                  title: 'Start your diary',
+                  subtitle: 'Write about your day, add photos, pick a mood and a page theme.',
+                  action: FilledButton.icon(
+                    onPressed: () => context.push('/diary-entry/new'),
+                    icon: const Icon(Icons.edit_rounded),
+                    label: const Text('Write your first entry'),
+                  ),
                 );
               }
 
-              final filteredHistory = _query.isEmpty
-                  ? historyItems
-                  : historyItems
-                        .where((e) => e.sourceText.toLowerCase().contains(_query))
+              final visible = _query.isEmpty
+                  ? entries
+                  : entries
+                        .where(
+                          (e) =>
+                              e.title.toLowerCase().contains(_query) ||
+                              e.body.toLowerCase().contains(_query),
+                        )
                         .toList();
-              final filteredTasks = _query.isEmpty
-                  ? tasks
-                  : tasks.where((t) => t.title.toLowerCase().contains(_query)).toList();
-
-              final days = _buildDiaryDays(filteredHistory, filteredTasks);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
                     const SizedBox(height: 4),
+                    _DiaryStats(entries: entries),
+                    const SizedBox(height: 12),
                     TextField(
                       controller: _searchController,
                       onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
                       decoration: const InputDecoration(
-                        hintText: 'Search diary',
+                        hintText: 'Search your diary',
                         prefixIcon: Icon(Icons.search_rounded),
                       ),
                     ),
                     const SizedBox(height: 12),
                     Expanded(
-                      child: days.isEmpty
+                      child: visible.isEmpty
                           ? const EmptyState(
                               icon: Icons.search_off_rounded,
                               title: 'No matches',
-                              subtitle: 'Nothing in your diary matches that search.',
+                              subtitle: 'No diary entry mentions that.',
                             )
-                          : ListView.builder(
-                              padding: const EdgeInsets.only(bottom: 96),
-                              itemCount: days.length,
-                              itemBuilder: (context, index) => _DiaryDaySection(
-                                day: days[index],
-                                folders: folders,
-                              ),
-                            ),
+                          : _GroupedEntryList(entries: visible),
                     ),
                   ],
                 ),
@@ -152,147 +108,83 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
       ),
     );
   }
+}
 
-  List<_DiaryDay> _buildDiaryDays(List<HistoryItem> historyItems, List<Task> tasks) {
-    final byDate = <DateTime, _DiaryDay>{};
-    _DiaryDay dayFor(DateTime date) =>
-        byDate.putIfAbsent(date, () => _DiaryDay(date));
+/// Entries grouped under a month heading, newest first.
+class _GroupedEntryList extends StatelessWidget {
+  const _GroupedEntryList({required this.entries});
 
-    for (final item in historyItems) {
-      final entryDay = DateUtils.dateOnly(item.timestamp);
-      dayFor(entryDay).entries.add(item);
+  final List<DiaryEntry> entries;
 
-      final reminderAt = item.reminderAt;
-      if (reminderAt != null) {
-        final reminderDay = DateUtils.dateOnly(reminderAt);
-        if (reminderDay != entryDay) {
-          dayFor(reminderDay).reminders.add(
-            _DiaryReminder(
-              time: reminderAt,
-              label: item.sourceText,
-              isTask: false,
-              historyItem: item,
-            ),
-          );
-        }
+  @override
+  Widget build(BuildContext context) {
+    // Entries arrive sorted newest first, so a month heading goes in wherever
+    // the month changes from the previous entry.
+    final rows = <Object>[];
+    DateTime? currentMonth;
+    for (final entry in entries) {
+      final month = DateTime(entry.date.year, entry.date.month);
+      if (month != currentMonth) {
+        rows.add(month);
+        currentMonth = month;
       }
+      rows.add(entry);
     }
 
-    for (final task in tasks) {
-      final createdDay = DateUtils.dateOnly(task.createdAt);
-      dayFor(createdDay).tasksCreated.add(task);
-
-      final reminderAt = task.reminderAt;
-      if (reminderAt != null && task.recurrence == TaskRecurrence.none) {
-        final reminderDay = DateUtils.dateOnly(reminderAt);
-        if (reminderDay != createdDay) {
-          dayFor(reminderDay).reminders.add(
-            _DiaryReminder(time: reminderAt, label: task.title, isTask: true),
-          );
-        }
-      }
-    }
-
-    for (final day in byDate.values) {
-      day.entries.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      day.reminders.sort((a, b) => a.time.compareTo(b.time));
-    }
-
-    return byDate.values.toList()..sort((a, b) => b.date.compareTo(a.date));
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 96),
+      itemCount: rows.length,
+      itemBuilder: (context, index) {
+        final row = rows[index];
+        if (row is DateTime) return _MonthHeading(month: row);
+        final entry = row as DiaryEntry;
+        return DiaryEntryCard(
+          key: ValueKey(entry.id),
+          entry: entry,
+          onTap: () => context.push('/diary-entry/${entry.id}'),
+        );
+      },
+    );
   }
 }
 
-class _DiaryDaySection extends ConsumerWidget {
-  const _DiaryDaySection({required this.day, required this.folders});
+class _MonthHeading extends StatelessWidget {
+  const _MonthHeading({required this.month});
 
-  final _DiaryDay day;
-  final List<Folder> folders;
-
-  String get _dateLabel {
-    final today = DateUtils.dateOnly(DateTime.now());
-    if (day.date == today) return 'Today';
-    if (day.date == today.subtract(const Duration(days: 1))) return 'Yesterday';
-    return DateFormat(
-      day.date.year == today.year ? 'EEEE, MMM d' : 'EEEE, MMM d, yyyy',
-    ).format(day.date);
-  }
+  final DateTime month;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final itemCount = day.entries.length + day.tasksCreated.length;
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.event_note_rounded, size: 18, color: scheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(_dateLabel, style: Theme.of(context).textTheme.titleMedium),
-              ),
-              if (itemCount > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    '$itemCount',
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          if (day.reminders.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _DiaryRemindersCard(reminders: day.reminders, ref: ref),
-          ],
-          if (day.entries.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            for (final item in day.entries)
-              HistoryTile(
-                item: item,
-                folder: folderByIdOrNull(folders, item.folderId),
-                onTap: () => showHistoryDetailSheet(context, ref, item),
-                onDelete: () {
-                  ref.read(historyControllerProvider.notifier).removeEntry(item.id);
-                  AppSnackbar.show(context, 'Removed from history');
-                },
-                onShare: () => showShareFormatSheet(context, item),
-              ),
-          ],
-          if (day.tasksCreated.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            for (final task in day.tasksCreated) _DiaryTaskRow(task: task),
-          ],
-        ],
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+      child: Text(
+        DateFormat('MMMM yyyy').format(month).toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.1,
+          color: scheme.primary,
+        ),
       ),
     );
   }
 }
 
-/// Compact list of reminders landing on this day, drawn from both voice
-/// entries and tasks — tapping a voice reminder opens its detail sheet;
-/// tapping a task reminder jumps to the Tasks tab, where it can be edited.
-class _DiaryRemindersCard extends StatelessWidget {
-  const _DiaryRemindersCard({required this.reminders, required this.ref});
+/// Entry count, writing streak and photo count — a small nudge to keep going.
+class _DiaryStats extends StatelessWidget {
+  const _DiaryStats({required this.entries});
 
-  final List<_DiaryReminder> reminders;
-  final WidgetRef ref;
+  final List<DiaryEntry> entries;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final streak = diaryStreak(entries, DateTime.now());
+    final photos = entries.fold<int>(0, (sum, e) => sum + e.photos.length);
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -302,96 +194,55 @@ class _DiaryRemindersCard extends StatelessWidget {
             scheme.tertiary.withValues(alpha: 0.16),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          for (final reminder in reminders)
-            InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                if (reminder.isTask) {
-                  context.go('/tasks');
-                } else if (reminder.historyItem != null) {
-                  showHistoryDetailSheet(context, ref, reminder.historyItem!);
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Icon(
-                      reminder.isTask
-                          ? Icons.checklist_rounded
-                          : Icons.notifications_active_rounded,
-                      size: 14,
-                      color: scheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      DateFormat('h:mm a').format(reminder.time),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        reminder.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 6),
+          _Stat(value: '${entries.length}', label: entries.length == 1 ? 'entry' : 'entries'),
+          _Stat(value: '🔥 $streak', label: 'day streak'),
+          _Stat(value: '$photos', label: photos == 1 ? 'photo' : 'photos'),
         ],
       ),
     );
   }
 }
 
-/// Read-mostly summary of a task added on this day — a live checkbox so a
-/// diary read-through can still mark something done, but reminder/recurrence
-/// editing stays on the Tasks tab rather than being duplicated here.
-class _DiaryTaskRow extends ConsumerWidget {
-  const _DiaryTaskRow({required this.task});
+/// Consecutive days with at least one entry, ending [now]'s day — or the day
+/// before, so a streak isn't shown as broken first thing in the morning
+/// before today's entry has been written.
+int diaryStreak(List<DiaryEntry> entries, DateTime now) {
+  final days = {for (final e in entries) DateUtils.dateOnly(e.date)};
+  var day = DateUtils.dateOnly(now);
+  if (!days.contains(day)) day = DateUtils.addDaysToDate(day, -1);
+  var streak = 0;
+  while (days.contains(day)) {
+    streak++;
+    day = DateUtils.addDaysToDate(day, -1);
+  }
+  return streak;
+}
 
-  final Task task;
+class _Stat extends StatelessWidget {
+  const _Stat({required this.value, required this.label});
+
+  final String value;
+  final String label;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final done = task.isDoneNow;
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        onTap: () => context.go('/tasks'),
-        leading: Checkbox(
-          value: done,
-          onChanged: (value) =>
-              ref.read(taskControllerProvider.notifier).setDone(task.id, value ?? false),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            decoration: done ? TextDecoration.lineThrough : null,
-            color: done ? scheme.onSurfaceVariant : scheme.onSurface,
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: scheme.onSurface,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-        ),
-        trailing: task.recurrence != TaskRecurrence.none
-            ? Icon(
-                task.recurrence == TaskRecurrence.daily
-                    ? Icons.repeat_rounded
-                    : Icons.event_repeat_rounded,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              )
-            : null,
+          Text(label, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.onSurfaceVariant)),
+        ],
       ),
     );
   }

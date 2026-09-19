@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/core/models/entry_template.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
 import 'package:ai_voice_docs/core/providers/notification_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
@@ -21,44 +22,6 @@ import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/spe
 /// other screen) so this sheet's dictation never leaks state into, or out
 /// of, another screen's live transcript.
 const _sourceSessionTag = 'add-entry-source';
-
-/// A quick-start skeleton for the entry text — tapping one fills the field
-/// with a structure to write into rather than starting from a blank line.
-class _EntryTemplate {
-  const _EntryTemplate(this.label, this.icon, this.text);
-
-  final String label;
-  final IconData icon;
-  final String text;
-}
-
-const _entryTemplates = [
-  _EntryTemplate(
-    'Reflection',
-    Icons.self_improvement_rounded,
-    'What went well today:\n\nWhat could be better:\n\nGrateful for:\n',
-  ),
-  _EntryTemplate(
-    'Gratitude',
-    Icons.favorite_rounded,
-    "Today I'm grateful for:\n1. \n2. \n3. ",
-  ),
-  _EntryTemplate(
-    'Meeting notes',
-    Icons.groups_rounded,
-    'Attendees:\n\nDiscussion:\n\nAction items:\n- ',
-  ),
-  _EntryTemplate(
-    'Plan',
-    Icons.checklist_rounded,
-    "Today's goals:\n- \n- \n- ",
-  ),
-  _EntryTemplate(
-    'Idea',
-    Icons.lightbulb_rounded,
-    'Idea:\n\nWhy it matters:\n\nNext step:\n',
-  ),
-];
 
 /// Bottom sheet for manually adding a history entry on any day — past dates
 /// backfill something you did offline instead of only ever capturing "now"
@@ -185,10 +148,10 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 height: 36,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: _entryTemplates.length,
+                  itemCount: entryTemplates.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
-                    final template = _entryTemplates[index];
+                    final template = entryTemplates[index];
                     return ActionChip(
                       avatar: Icon(template.icon, size: 16),
                       label: Text(template.label),
@@ -245,7 +208,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
     );
   }
 
-  Future<void> _applyTemplate(_EntryTemplate template) async {
+  Future<void> _applyTemplate(EntryTemplate template) async {
     if (_sourceTextController.text.trim().isNotEmpty) {
       final confirmed = await showDialog<bool>(
         context: context,

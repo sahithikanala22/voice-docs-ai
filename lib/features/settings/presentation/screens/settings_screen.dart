@@ -14,6 +14,7 @@ import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
 import 'package:ai_voice_docs/features/backup/presentation/providers/backup_providers.dart';
+import 'package:ai_voice_docs/features/diary/presentation/providers/diary_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
@@ -409,6 +410,7 @@ class SettingsScreen extends ConsumerWidget {
         ..invalidate(historyControllerProvider)
         ..invalidate(folderControllerProvider)
         ..invalidate(taskControllerProvider)
+        ..invalidate(diaryControllerProvider)
         ..invalidate(settingsControllerProvider)
         ..invalidate(appLockControllerProvider);
       if (context.mounted) {

@@ -8,16 +8,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/errors/exceptions.dart';
 
-/// All five SharedPreferences keys that hold a full JSON blob for a feature
-/// — the complete set of on-device data a backup needs to cover. A new
+/// Every SharedPreferences key that holds a full JSON blob for a feature —
+/// the complete set of on-device data a backup needs to cover. A new
 /// feature that persists its own blob under a new `PrefsKeys` entry should
 /// be added here too.
+///
+/// Diary *photos* live as files, not in SharedPreferences, so they are not
+/// part of this backup — only the entries' text, mood and theme are.
 const _backupKeys = {
   'history': PrefsKeys.history,
   'settings': PrefsKeys.settings,
   'folders': PrefsKeys.folders,
   'appLockAccount': PrefsKeys.appLockAccount,
   'tasks': PrefsKeys.tasks,
+  'diary': PrefsKeys.diary,
 };
 
 const _backupFormatVersion = 1;

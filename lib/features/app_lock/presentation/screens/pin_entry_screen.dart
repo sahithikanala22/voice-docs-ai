@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/paper_background.dart';
+import 'package:ai_voice_docs/features/diary/presentation/providers/diary_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
 
 import '../providers/app_lock_providers.dart';
 
@@ -169,8 +171,11 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     );
     if (confirmed == true) {
       await ref.read(sharedPreferencesProvider).clear();
+      await ref.read(diaryPhotoStoreProvider).clearAll();
       ref.invalidate(historyControllerProvider);
       ref.invalidate(folderControllerProvider);
+      ref.invalidate(taskControllerProvider);
+      ref.invalidate(diaryControllerProvider);
       ref.invalidate(settingsControllerProvider);
       ref.invalidate(appLockControllerProvider);
     }

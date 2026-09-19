@@ -8,6 +8,8 @@ import 'package:ai_voice_docs/features/app_lock/presentation/screens/pin_entry_s
 import 'package:ai_voice_docs/features/app_lock/presentation/screens/profile_screen.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/screens/signup_screen.dart';
 import 'package:ai_voice_docs/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_editor_screen.dart';
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_entry_screen.dart';
 import 'package:ai_voice_docs/features/diary/presentation/screens/diary_screen.dart';
 import 'package:ai_voice_docs/features/history/presentation/screens/history_screen.dart';
 import 'package:ai_voice_docs/features/settings/presentation/screens/language_picker_screen.dart';
@@ -76,6 +78,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+      GoRoute(
+        path: '/diary-entry/new',
+        builder: (context, state) => const DiaryEditorScreen(),
+      ),
+      GoRoute(
+        path: '/diary-entry/:id',
+        builder: (context, state) => DiaryEntryScreen(entryId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/diary-entry/:id/edit',
+        builder: (context, state) =>
+            DiaryEditorScreen(entryId: state.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/language-picker',
         builder: (context, state) {
