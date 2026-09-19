@@ -13,10 +13,13 @@ import 'package:ai_voice_docs/core/errors/exceptions.dart';
 /// feature that persists its own blob under a new `PrefsKeys` entry should
 /// be added here too.
 ///
-/// Diary *photos* and the profile *avatar* live as files, not in
-/// SharedPreferences, so they are not part of this backup — restoring on a
-/// new device brings back the diary text/mood/theme and the account's other
-/// fields, but not those images.
+/// Diary *photos*, the profile *avatar*, and the custom *background photo*
+/// all live as files, not in SharedPreferences, so they are not part of
+/// this backup — restoring on a new device brings back the diary
+/// text/mood/theme, the account's other fields, and the chosen paper style,
+/// but not those images. A restored `backgroundPhotoPath` pointing at a file
+/// that was never copied over just falls back to the plain background (see
+/// `PaperBackground`) rather than erroring.
 const _backupKeys = {
   'history': PrefsKeys.history,
   'settings': PrefsKeys.settings,

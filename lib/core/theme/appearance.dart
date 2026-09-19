@@ -19,6 +19,10 @@ enum AppPalette {
 
 /// Background texture drawn behind every screen. [floatingDots] is the
 /// original animated look and stays the default.
+///
+/// [customPhoto] is different from the rest: it has no fixed painter, it
+/// renders whatever `AppSettings.backgroundPhotoPath` points at (dimmed for
+/// legibility) — see `PaperBackground`.
 enum PaperStyle {
   floatingDots('Floating dots'),
   plain('Plain'),
@@ -26,7 +30,8 @@ enum PaperStyle {
   parchment('Parchment'),
   waveLines('Wave lines'),
   dotGrid('Dot grid'),
-  fineLinen('Fine linen');
+  fineLinen('Fine linen'),
+  customPhoto('Custom photo');
 
   const PaperStyle(this.label);
 

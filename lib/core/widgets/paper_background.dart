@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui' show PointMode;
 
@@ -26,30 +27,72 @@ class PaperBackground extends ConsumerWidget {
             PaperStyle.floatingDots;
     final scheme = Theme.of(context).colorScheme;
 
-    final Widget background = switch (style) {
-      PaperStyle.floatingDots => const FloatingDotsLayer(),
-      PaperStyle.plain => const SizedBox.expand(),
-      _ => RepaintBoundary(
-          child: CustomPaint(
-            painter: PaperPainter(
-              style: style,
-              ink: scheme.onSurface,
-              isDark: scheme.brightness == Brightness.dark,
+    Widget background;
+    var backgroundKey = Object.hash(style, null);
+    if (style == PaperStyle.customPhoto) {
+      final photoPath =
+          ref.watch(settingsControllerProvider.select((s) => s.value?.backgroundPhotoPath));
+      final dir = photoPath == null ? null : ref.watch(appBackgroundPhotoDirProvider).value;
+      background = photoPath != null && dir != null
+          ? _CustomPhotoLayer(path: '$dir/$photoPath', scrim: scheme.surface)
+          : const SizedBox.expand();
+      // Re-keyed on the photo too, so replacing it (not just switching
+      // styles) still gets the fade transition rather than an abrupt swap.
+      backgroundKey = Object.hash(style, photoPath);
+    } else {
+      background = switch (style) {
+        PaperStyle.floatingDots => const FloatingDotsLayer(),
+        PaperStyle.plain => const SizedBox.expand(),
+        _ => RepaintBoundary(
+            child: CustomPaint(
+              painter: PaperPainter(
+                style: style,
+                ink: scheme.onSurface,
+                isDark: scheme.brightness == Brightness.dark,
+              ),
+              size: Size.infinite,
             ),
-            size: Size.infinite,
           ),
-        ),
-    };
+      };
+    }
 
     return Stack(
       children: [
         Positioned.fill(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            child: KeyedSubtree(key: ValueKey(style), child: background),
+            child: KeyedSubtree(key: ValueKey(backgroundKey), child: background),
           ),
         ),
         child,
+      ],
+    );
+  }
+}
+
+/// A picked photo behind everything else, dimmed with the current theme's
+/// surface color so foreground text and controls stay legible regardless of
+/// what's in the photo — a bright/busy image otherwise fights with content
+/// drawn on top of it in a way none of the abstract [PaperPainter] textures
+/// ever could.
+class _CustomPhotoLayer extends StatelessWidget {
+  const _CustomPhotoLayer({required this.path, required this.scrim});
+
+  final String path;
+  final Color scrim;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.file(
+          File(path),
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (_, _, _) => const SizedBox.expand(),
+        ),
+        DecoratedBox(decoration: BoxDecoration(color: scrim.withValues(alpha: 0.68))),
       ],
     );
   }
@@ -87,6 +130,10 @@ class PaperPainter extends CustomPainter {
         _paintDotGrid(canvas, size);
       case PaperStyle.fineLinen:
         _paintLinen(canvas, size);
+      case PaperStyle.customPhoto:
+        // Never actually reached — PaperBackground renders a photo layer
+        // for this style instead of a painter. Kept for exhaustiveness.
+        break;
     }
   }
 

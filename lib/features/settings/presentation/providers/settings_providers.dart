@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:ai_voice_docs/core/data/app_background_photo_store.dart';
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/theme/appearance.dart';
 import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
@@ -14,6 +15,17 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return SettingsRepositoryImpl(SettingsLocalDataSource(prefs));
 });
+
+final appBackgroundPhotoStoreProvider = Provider<AppBackgroundPhotoStore>(
+  (ref) => AppBackgroundPhotoStore(),
+);
+
+/// Absolute path of the background-photo directory, resolved once so
+/// `PaperBackground` can build a `File` synchronously instead of awaiting
+/// the platform on every rebuild.
+final appBackgroundPhotoDirProvider = FutureProvider<String>(
+  (ref) async => (await ref.watch(appBackgroundPhotoStoreProvider).directory()).path,
+);
 
 /// The single source of truth for user preferences. Every mutator persists
 /// immediately so settings survive an app restart with no explicit "save"
@@ -48,6 +60,22 @@ class SettingsController extends AsyncNotifier<AppSettings> {
   Future<void> setPalette(AppPalette palette) => _update((s) => s.copyWith(palette: palette));
 
   Future<void> setPaperStyle(PaperStyle style) => _update((s) => s.copyWith(paperStyle: style));
+
+  /// Sets a newly picked custom background photo and switches to it
+  /// immediately. Deleting the previous file (if replacing one) is the
+  /// caller's job — this only updates what's persisted.
+  Future<void> setCustomBackgroundPhoto(String path) =>
+      _update((s) => s.copyWith(backgroundPhotoPath: path, paperStyle: PaperStyle.customPhoto));
+
+  /// Clears the custom background photo. Falls back to the default paper
+  /// style only when it was actually in use, so removing the photo while
+  /// some other style is selected doesn't change that style.
+  Future<void> removeCustomBackgroundPhoto() => _update(
+        (s) => s.copyWith(
+          backgroundPhotoPath: null,
+          paperStyle: s.paperStyle == PaperStyle.customPhoto ? PaperStyle.floatingDots : s.paperStyle,
+        ),
+      );
 
   Future<void> setBiometricUnlock(bool value) => _update((s) => s.copyWith(biometricUnlock: value));
 

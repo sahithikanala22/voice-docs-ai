@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
@@ -173,8 +175,20 @@ class SettingsScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           PaperStylePicker(
                             value: settings.paperStyle,
+                            backgroundPhotoPath: settings.backgroundPhotoPath,
                             onChanged: controller.setPaperStyle,
+                            onPickPhoto: () => _pickBackgroundPhoto(context, ref, settings.backgroundPhotoPath),
                           ),
+                          if (settings.backgroundPhotoPath != null) ...[
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => _removeBackgroundPhoto(ref, settings.backgroundPhotoPath!),
+                                child: const Text('Remove custom photo'),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -346,6 +360,71 @@ class SettingsScreen extends ConsumerWidget {
         isError: true,
       );
     }
+  }
+
+  /// Photos are downscaled on the way in — a full-screen background never
+  /// needs a multi-thousand-pixel camera photo, and this keeps storage and
+  /// decode cost down since it's redrawn behind every screen in the app.
+  static const _maxBackgroundPhotoDimension = 1600.0;
+  static const _backgroundPhotoQuality = 85;
+
+  Future<void> _pickBackgroundPhoto(BuildContext context, WidgetRef ref, String? currentPath) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(sheetContext, ImageSource.camera),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !context.mounted) return;
+
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: _maxBackgroundPhotoDimension,
+        maxHeight: _maxBackgroundPhotoDimension,
+        imageQuality: _backgroundPhotoQuality,
+      );
+      if (picked == null) return;
+
+      final name = await ref.read(appBackgroundPhotoStoreProvider).import(picked.path);
+      await ref.read(settingsControllerProvider.notifier).setCustomBackgroundPhoto(name);
+      // Nothing references the old file once the new one is saved.
+      if (currentPath != null) {
+        await ref.read(appBackgroundPhotoStoreProvider).delete([currentPath]);
+      }
+    } on PlatformException catch (e) {
+      if (context.mounted) {
+        AppSnackbar.show(
+          context,
+          e.code == 'camera_access_denied' || e.code == 'photo_access_denied'
+              ? 'Permission needed to add a photo. Allow it in your phone\'s settings.'
+              : 'Could not add the photo: ${e.message ?? e.code}',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) AppSnackbar.show(context, 'Could not add the photo: $e', isError: true);
+    }
+  }
+
+  Future<void> _removeBackgroundPhoto(WidgetRef ref, String path) async {
+    await ref.read(settingsControllerProvider.notifier).removeCustomBackgroundPhoto();
+    await ref.read(appBackgroundPhotoStoreProvider).delete([path]);
   }
 
   Future<void> _pickLanguage(

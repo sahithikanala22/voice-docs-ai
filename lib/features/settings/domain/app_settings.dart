@@ -42,6 +42,11 @@ abstract class AppSettings with _$AppSettings {
     @Default(AppPalette.indigo) AppPalette palette,
     /// Background texture behind every screen.
     @Default(PaperStyle.floatingDots) PaperStyle paperStyle,
+    /// File name inside the app-background photo store (see
+    /// `AppBackgroundPhotoStore`), not an absolute path. Only meaningful
+    /// when [paperStyle] is [PaperStyle.customPhoto]; kept even if the style
+    /// is switched away so switching back doesn't lose the picked photo.
+    String? backgroundPhotoPath,
     /// Offer fingerprint/face unlock on the lock screen. The PIN always
     /// remains available as the fallback.
     @Default(false) bool biometricUnlock,

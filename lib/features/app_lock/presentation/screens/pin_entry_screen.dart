@@ -173,6 +173,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
       await ref.read(sharedPreferencesProvider).clear();
       await ref.read(diaryPhotoStoreProvider).clearAll();
       await ref.read(avatarStoreProvider).clearAll();
+      await ref.read(appBackgroundPhotoStoreProvider).clearAll();
       ref.invalidate(historyControllerProvider);
       ref.invalidate(folderControllerProvider);
       ref.invalidate(taskControllerProvider);
