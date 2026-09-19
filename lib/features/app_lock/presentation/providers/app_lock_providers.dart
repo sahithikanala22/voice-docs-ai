@@ -7,6 +7,7 @@ import 'package:ai_voice_docs/core/providers/core_providers.dart';
 
 import '../../data/app_lock_account.dart';
 import '../../data/app_lock_local_datasource.dart';
+import '../../data/biometric_service.dart';
 import '../../data/app_lock_repository_impl.dart';
 import '../../domain/app_lock_repository.dart';
 import 'app_lock_state.dart';
@@ -15,6 +16,14 @@ final appLockRepositoryProvider = Provider<AppLockRepository>((ref) {
   final prefs = ref.watch(sharedPreferencesProvider);
   return AppLockRepositoryImpl(AppLockLocalDataSource(prefs));
 });
+
+final biometricServiceProvider = Provider<BiometricService>((ref) => BiometricService());
+
+/// Whether this phone can do fingerprint/face unlock right now (hardware
+/// present and something enrolled).
+final biometricAvailableProvider = FutureProvider<bool>(
+  (ref) => ref.watch(biometricServiceProvider).isAvailable(),
+);
 
 /// Drives the signup/PIN-entry gate. `build()` loads whatever account is
 /// already on disk (if any) once per app process — `isUnlocked` then only
@@ -52,6 +61,14 @@ class AppLockController extends AsyncNotifier<AppLockState> {
           : current.copyWith(errorMessage: 'Incorrect PIN. Try again.'),
     );
     return matches;
+  }
+
+  /// Unlocks after a successful fingerprint/face check — the caller has
+  /// already verified the biometric, so no PIN is involved.
+  void unlockWithBiometric() {
+    final current = state.value;
+    if (current?.account == null) return;
+    state = AsyncData(current!.copyWith(isUnlocked: true, errorMessage: null));
   }
 
   /// Updates the profile fields shown on the Profile screen. Rebuilds the

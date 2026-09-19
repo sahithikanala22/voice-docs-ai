@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_filter_chip.dart';
@@ -83,7 +83,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ],
               bottom: const GradientAppBarUnderline(),
             ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

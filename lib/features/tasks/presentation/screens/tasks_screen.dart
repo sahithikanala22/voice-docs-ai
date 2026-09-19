@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:ai_voice_docs/core/providers/notification_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 
 import '../../data/task.dart';
@@ -34,7 +34,7 @@ class TasksScreen extends ConsumerWidget {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add task'),
       ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: tasks.isEmpty
               ? const EmptyState(

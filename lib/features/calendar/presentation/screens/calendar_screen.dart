@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_filter_chip.dart';
@@ -67,7 +67,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add entry'),
       ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: historyAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),

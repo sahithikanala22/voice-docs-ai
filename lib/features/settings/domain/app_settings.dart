@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/theme/appearance.dart';
 import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
 
 part 'app_settings.freezed.dart';
@@ -31,6 +32,13 @@ abstract class AppSettings with _$AppSettings {
     /// language. Keyed by `Language.code` (not the region-qualified locale)
     /// since that's what every "speak" call already has on hand.
     @Default(<String, String>{}) Map<String, String> ttsVoiceByLanguage,
+    /// Accent color family — ignored while [useDynamicColor] is on.
+    @Default(AppPalette.indigo) AppPalette palette,
+    /// Background texture behind every screen.
+    @Default(PaperStyle.floatingDots) PaperStyle paperStyle,
+    /// Offer fingerprint/face unlock on the lock screen. The PIN always
+    /// remains available as the fallback.
+    @Default(false) bool biometricUnlock,
   }) = _AppSettings;
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => _$AppSettingsFromJson(json);

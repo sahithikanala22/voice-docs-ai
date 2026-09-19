@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/core/theme/appearance.dart';
 import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
 
 import '../../data/settings_local_datasource.dart';
@@ -43,6 +44,12 @@ class SettingsController extends AsyncNotifier<AppSettings> {
       _update((s) => s.copyWith(currentFolderId: folderId));
 
   Future<void> setUseDynamicColor(bool value) => _update((s) => s.copyWith(useDynamicColor: value));
+
+  Future<void> setPalette(AppPalette palette) => _update((s) => s.copyWith(palette: palette));
+
+  Future<void> setPaperStyle(PaperStyle style) => _update((s) => s.copyWith(paperStyle: style));
+
+  Future<void> setBiometricUnlock(bool value) => _update((s) => s.copyWith(biometricUnlock: value));
 
   Future<void> setSpeechEngine(SpeechEngine engine) => _update((s) => s.copyWith(speechEngine: engine));
 

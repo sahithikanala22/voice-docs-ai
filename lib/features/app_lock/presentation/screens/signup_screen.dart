@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 
 import '../providers/app_lock_providers.dart';
 
@@ -35,7 +35,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(

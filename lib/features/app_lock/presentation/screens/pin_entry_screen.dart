@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
@@ -25,15 +25,38 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   final _pinController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _tryBiometric());
+  }
+
+  @override
   void dispose() {
     _pinController.dispose();
     super.dispose();
+  }
+
+  /// Prompts for fingerprint/face if the user turned it on and the phone can
+  /// do it; on success unlocks without the PIN. Silent no-op otherwise, and a
+  /// cancelled/failed prompt just leaves the PIN field to use.
+  Future<void> _tryBiometric() async {
+    final settings = await ref.read(settingsControllerProvider.future);
+    if (!settings.biometricUnlock || !mounted) return;
+    final service = ref.read(biometricServiceProvider);
+    if (!await service.isAvailable() || !mounted) return;
+    final ok = await service.authenticate('Unlock Voice Docs AI');
+    if (ok && mounted) {
+      ref.read(appLockControllerProvider.notifier).unlockWithBiometric();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockControllerProvider).value;
     final name = lockState?.account?.name ?? '';
+    final biometricEnabled =
+        (ref.watch(settingsControllerProvider).value?.biometricUnlock ?? false) &&
+        (ref.watch(biometricAvailableProvider).value ?? false);
 
     ref.listen(appLockControllerProvider, (previous, next) {
       final error = next.value?.errorMessage;
@@ -44,7 +67,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     });
 
     return Scaffold(
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -92,6 +115,14 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                   ),
                   const SizedBox(height: 16),
                   FilledButton(onPressed: _submit, child: const Text('Unlock')),
+                  if (biometricEnabled) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _tryBiometric,
+                      icon: const Icon(Icons.fingerprint_rounded),
+                      label: const Text('Use fingerprint / face'),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => _confirmReset(context),

@@ -63,12 +63,15 @@ class AppTheme {
   /// Settings — the app defaults to its own brand seed color rather than
   /// wallpaper colors, since "Bold & vibrant" was a deliberate design choice
   /// that a muted system palette could otherwise quietly override.
-  static ThemeData light({ColorScheme? dynamicScheme}) => _base(
-        dynamicScheme ?? ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.light),
+  ///
+  /// [seed] is the user's chosen palette color (defaults to the brand
+  /// indigo); it's ignored whenever [dynamicScheme] is supplied.
+  static ThemeData light({ColorScheme? dynamicScheme, Color seed = _seed}) => _base(
+        dynamicScheme ?? ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
       );
 
-  static ThemeData dark({ColorScheme? dynamicScheme}) => _base(
-        dynamicScheme ?? ColorScheme.fromSeed(seedColor: _seed, brightness: Brightness.dark),
+  static ThemeData dark({ColorScheme? dynamicScheme, Color seed = _seed}) => _base(
+        dynamicScheme ?? ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
       );
 
   static ThemeData _base(ColorScheme scheme) {

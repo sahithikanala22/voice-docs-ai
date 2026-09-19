@@ -10,7 +10,7 @@ import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
 import 'package:ai_voice_docs/features/backup/presentation/providers/backup_providers.dart';
@@ -21,6 +21,8 @@ import 'package:ai_voice_docs/features/tasks/presentation/providers/task_provide
 
 import '../providers/settings_providers.dart';
 import '../widgets/google_cloud_speech_settings.dart';
+import '../widgets/palette_picker.dart';
+import '../widgets/paper_style_picker.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
 
@@ -37,13 +39,15 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('Settings'),
         bottom: const GradientAppBarUnderline(),
       ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: settingsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, _) =>
               Center(child: Text('Could not load settings: $err')),
           data: (settings) {
             final account = ref.watch(appLockControllerProvider).value?.account;
+            final biometricAvailable =
+                ref.watch(biometricAvailableProvider).value ?? false;
 
             return ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -68,11 +72,65 @@ class SettingsScreen extends ConsumerWidget {
                       onTap: () =>
                           ref.read(appLockControllerProvider.notifier).lock(),
                     ),
+                    const Divider(height: 1),
+                    SwitchListTile(
+                      secondary: const Icon(Icons.fingerprint_rounded),
+                      title: const Text('Unlock with fingerprint / face'),
+                      subtitle: Text(
+                        biometricAvailable
+                            ? 'Skip typing your PIN — the PIN still works as a backup'
+                            : 'Set up a fingerprint or face unlock in your phone\'s settings first',
+                      ),
+                      value: settings.biometricUnlock && biometricAvailable,
+                      onChanged: biometricAvailable
+                          ? (value) => _toggleBiometric(context, ref, value)
+                          : null,
+                    ),
                   ],
                 ),
                 SettingsSection(
-                  title: 'Appearance',
+                  title: 'Palette',
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.palette_outlined),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Palette',
+                                      style: Theme.of(context).textTheme.titleMedium,
+                                    ),
+                                    Text(
+                                      settings.useDynamicColor
+                                          ? 'Turn off wallpaper colors below to pick a palette'
+                                          : 'Choose your accent colors',
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          PalettePicker(
+                            value: settings.palette,
+                            enabled: !settings.useDynamicColor,
+                            onChanged: controller.setPalette,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: ThemeModeSelector(
@@ -89,6 +147,30 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                       value: settings.useDynamicColor,
                       onChanged: controller.setUseDynamicColor,
+                    ),
+                  ],
+                ),
+                SettingsSection(
+                  title: 'Paper style',
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Background texture for your pages',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          PaperStylePicker(
+                            value: settings.paperStyle,
+                            onChanged: controller.setPaperStyle,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -232,6 +314,34 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Turning it on requires a successful biometric check first, so the
+  /// switch can never be left on for a fingerprint/face that doesn't actually
+  /// work; turning it off is immediate.
+  Future<void> _toggleBiometric(
+    BuildContext context,
+    WidgetRef ref,
+    bool enable,
+  ) async {
+    final controller = ref.read(settingsControllerProvider.notifier);
+    if (!enable) {
+      await controller.setBiometricUnlock(false);
+      return;
+    }
+    final ok = await ref
+        .read(biometricServiceProvider)
+        .authenticate('Confirm it\'s you to turn on biometric unlock');
+    if (!context.mounted) return;
+    if (ok) {
+      await controller.setBiometricUnlock(true);
+    } else {
+      AppSnackbar.show(
+        context,
+        'Couldn\'t verify — biometric unlock stays off.',
+        isError: true,
+      );
+    }
   }
 
   Future<void> _pickLanguage(

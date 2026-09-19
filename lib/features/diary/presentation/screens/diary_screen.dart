@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/calendar/presentation/widgets/add_entry_sheet.dart';
 import 'package:ai_voice_docs/features/folders/data/folder.dart';
@@ -85,7 +85,7 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add entry'),
       ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: historyAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),

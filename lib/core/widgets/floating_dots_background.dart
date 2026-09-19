@@ -4,21 +4,19 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Wraps [child] with a field of small, slowly drifting dots behind it —
-/// used on the PIN entry screen so an otherwise bare security gate feels a
-/// little more alive without distracting from actually entering the PIN.
-/// Pure [CustomPainter] animation, no extra dependencies.
-class FloatingDotsBackground extends StatefulWidget {
-  const FloatingDotsBackground({super.key, required this.child, this.dotCount = 26});
+/// A field of small, slowly drifting dots — the app's original animated
+/// background, now one of the selectable paper styles (see
+/// `PaperBackground`). Pure [CustomPainter] animation, no extra dependencies.
+class FloatingDotsLayer extends StatefulWidget {
+  const FloatingDotsLayer({super.key, this.dotCount = 26});
 
-  final Widget child;
   final int dotCount;
 
   @override
-  State<FloatingDotsBackground> createState() => _FloatingDotsBackgroundState();
+  State<FloatingDotsLayer> createState() => _FloatingDotsLayerState();
 }
 
-class _FloatingDotsBackgroundState extends State<FloatingDotsBackground>
+class _FloatingDotsLayerState extends State<FloatingDotsLayer>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller =
       AnimationController(vsync: this, duration: const Duration(seconds: 50))..repeat();
@@ -50,16 +48,9 @@ class _FloatingDotsBackgroundState extends State<FloatingDotsBackground>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => CustomPaint(painter: _DotsPainter(_dots, _controller.value)),
-          ),
-        ),
-        widget.child,
-      ],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => CustomPaint(painter: _DotsPainter(_dots, _controller.value)),
     );
   }
 }

@@ -7,7 +7,7 @@ import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/models/language.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
-import 'package:ai_voice_docs/core/widgets/floating_dots_background.dart';
+import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/folder_selector_chip.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/core/widgets/language_selector_chip.dart';
@@ -100,7 +100,7 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
         ],
         bottom: const GradientAppBarUnderline(),
       ),
-      body: FloatingDotsBackground(
+      body: PaperBackground(
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
