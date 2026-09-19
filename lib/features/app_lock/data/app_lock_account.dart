@@ -15,6 +15,11 @@ abstract class AppLockAccount with _$AppLockAccount {
     required String pinHash,
     DateTime? dob,
     String? email,
+
+    /// File name inside the avatar store (see `AvatarStore`), not an
+    /// absolute path — the app's storage path can change across installs
+    /// and restores, the name doesn't. Null means no picture set.
+    String? avatarPath,
   }) = _AppLockAccount;
 
   factory AppLockAccount.fromJson(Map<String, dynamic> json) => _$AppLockAccountFromJson(json);

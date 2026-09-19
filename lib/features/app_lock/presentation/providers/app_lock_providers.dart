@@ -7,8 +7,9 @@ import 'package:ai_voice_docs/core/providers/core_providers.dart';
 
 import '../../data/app_lock_account.dart';
 import '../../data/app_lock_local_datasource.dart';
-import '../../data/biometric_service.dart';
 import '../../data/app_lock_repository_impl.dart';
+import '../../data/avatar_store.dart';
+import '../../data/biometric_service.dart';
 import '../../domain/app_lock_repository.dart';
 import 'app_lock_state.dart';
 
@@ -18,6 +19,14 @@ final appLockRepositoryProvider = Provider<AppLockRepository>((ref) {
 });
 
 final biometricServiceProvider = Provider<BiometricService>((ref) => BiometricService());
+
+final avatarStoreProvider = Provider<AvatarStore>((ref) => AvatarStore());
+
+/// Absolute path of the avatar directory, resolved once so the avatar widget
+/// can build a `File` synchronously instead of awaiting the platform itself.
+final avatarDirProvider = FutureProvider<String>(
+  (ref) async => (await ref.watch(avatarStoreProvider).directory()).path,
+);
 
 /// Whether this phone can do fingerprint/face unlock right now (hardware
 /// present and something enrolled).
@@ -73,8 +82,13 @@ class AppLockController extends AsyncNotifier<AppLockState> {
 
   /// Updates the profile fields shown on the Profile screen. Rebuilds the
   /// account explicitly (rather than via `copyWith`) so passing `null` for
-  /// [dob]/[email] unambiguously clears them.
-  Future<void> updateProfile({required String name, DateTime? dob, String? email}) async {
+  /// [dob]/[email]/[avatarPath] unambiguously clears them.
+  Future<void> updateProfile({
+    required String name,
+    DateTime? dob,
+    String? email,
+    String? avatarPath,
+  }) async {
     final current = state.value;
     final account = current?.account;
     if (current == null || account == null) return;
@@ -85,6 +99,7 @@ class AppLockController extends AsyncNotifier<AppLockState> {
       pinHash: account.pinHash,
       dob: dob,
       email: (trimmedEmail == null || trimmedEmail.isEmpty) ? null : trimmedEmail,
+      avatarPath: avatarPath,
     );
     await ref.read(appLockRepositoryProvider).save(updated);
     state = AsyncData(current.copyWith(account: updated));

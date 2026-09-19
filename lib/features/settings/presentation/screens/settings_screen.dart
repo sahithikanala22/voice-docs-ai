@@ -13,6 +13,7 @@ import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
+import 'package:ai_voice_docs/features/app_lock/presentation/widgets/account_avatar.dart';
 import 'package:ai_voice_docs/features/backup/presentation/providers/backup_providers.dart';
 import 'package:ai_voice_docs/features/diary/presentation/providers/diary_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
@@ -57,7 +58,11 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Account',
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.person_outline_rounded),
+                      leading: AccountAvatar(
+                        avatarPath: account?.avatarPath,
+                        name: account?.name ?? '',
+                        radius: 18,
+                      ),
                       title: Text(account?.name ?? 'Signed in'),
                       subtitle: const Text('View profile'),
                       trailing: const Icon(Icons.chevron_right_rounded),

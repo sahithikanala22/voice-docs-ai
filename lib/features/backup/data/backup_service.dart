@@ -13,8 +13,10 @@ import 'package:ai_voice_docs/core/errors/exceptions.dart';
 /// feature that persists its own blob under a new `PrefsKeys` entry should
 /// be added here too.
 ///
-/// Diary *photos* live as files, not in SharedPreferences, so they are not
-/// part of this backup — only the entries' text, mood and theme are.
+/// Diary *photos* and the profile *avatar* live as files, not in
+/// SharedPreferences, so they are not part of this backup — restoring on a
+/// new device brings back the diary text/mood/theme and the account's other
+/// fields, but not those images.
 const _backupKeys = {
   'history': PrefsKeys.history,
   'settings': PrefsKeys.settings,
