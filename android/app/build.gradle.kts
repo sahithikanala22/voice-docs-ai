@@ -21,7 +21,10 @@ android {
     // the Flutter-provided default. This only affects what APIs are
     // compiled against, not minSdk/targetSdk (device compatibility).
     compileSdk = 36
-    ndkVersion = flutter.ndkVersion
+    // whisper_ggml (native whisper.cpp bindings) requires a newer NDK than
+    // Flutter's own default; pin to it explicitly since it's backward
+    // compatible with everything else here.
+    ndkVersion = "29.0.13113456"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

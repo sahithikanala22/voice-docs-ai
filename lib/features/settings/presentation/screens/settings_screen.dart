@@ -27,6 +27,7 @@ import '../providers/settings_providers.dart';
 import '../widgets/palette_picker.dart';
 import '../widgets/paper_style_picker.dart';
 import '../widgets/sarvam_speech_settings.dart';
+import '../widgets/whisper_speech_settings.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
 
@@ -230,6 +231,10 @@ class SettingsScreen extends ConsumerWidget {
                                 value: SpeechEngine.sarvam,
                                 label: Text('Sarvam AI'),
                               ),
+                              ButtonSegment(
+                                value: SpeechEngine.whisper,
+                                label: Text('Whisper'),
+                              ),
                             ],
                             selected: {settings.speechEngine},
                             onSelectionChanged: (value) =>
@@ -237,9 +242,15 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            settings.speechEngine == SpeechEngine.onDevice
-                                ? 'Free and works offline. Reliability depends on your phone\'s own speech recognizer.'
-                                : 'Much stronger on Indian languages. Needs internet and your own API key; bills per use.',
+                            switch (settings.speechEngine) {
+                              SpeechEngine.onDevice =>
+                                'Free and works offline. Reliability depends on your phone\'s own speech recognizer.',
+                              SpeechEngine.sarvam =>
+                                'Much stronger on Indian languages. Needs internet and your own API key; bills per use.',
+                              SpeechEngine.whisper =>
+                                'Free and works offline once its model is downloaded. Generally more accurate than '
+                                    'the on-device engine, especially with accents.',
+                            },
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: Theme.of(
@@ -253,6 +264,10 @@ class SettingsScreen extends ConsumerWidget {
                     if (settings.speechEngine == SpeechEngine.sarvam) ...[
                       const Divider(height: 1),
                       SarvamSpeechSettings(apiKey: settings.sarvamApiKey),
+                    ],
+                    if (settings.speechEngine == SpeechEngine.whisper) ...[
+                      const Divider(height: 1),
+                      const WhisperSpeechSettings(),
                     ],
                   ],
                 ),

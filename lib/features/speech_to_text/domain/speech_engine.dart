@@ -11,4 +11,13 @@ enum SpeechEngine {
   /// because this is an upload-and-wait REST call rather than a streaming
   /// session.
   sarvam,
+
+  /// OpenAI's Whisper model, running fully on-device via whisper.cpp
+  /// (`whisper_ggml`). Free forever — no API key, no per-use billing — and
+  /// works offline once its model file has been downloaded once. Generally
+  /// more accurate than the OS recognizer, especially with accents, and
+  /// unlike Sarvam it does stream live partial captions. Costs a one-time
+  /// ~140MB download and noticeably more battery/CPU per recording than
+  /// [onDevice].
+  whisper,
 }

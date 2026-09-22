@@ -8,15 +8,17 @@ import 'package:ai_voice_docs/features/settings/presentation/providers/settings_
 import '../../data/providers/on_device_speech_provider.dart';
 import '../../data/providers/sarvam_speech_provider.dart';
 import '../../data/providers/speech_provider.dart';
+import '../../data/providers/whisper_speech_provider.dart';
 import '../../data/repositories/speech_repository_impl.dart';
 import '../../domain/recognition_state.dart';
 import '../../domain/speech_engine.dart';
 import '../../domain/speech_repository.dart';
 
-/// Picks the active [SpeechProvider] from Settings' `speechEngine` choice —
-/// [SpeechEngine.onDevice] (default, free, offline) or
-/// [SpeechEngine.sarvam] (needs an API key, see [SarvamSpeechProvider]'s doc
-/// comment for why it's upload-and-wait rather than live-streaming).
+/// Picks the active [SpeechProvider] from Settings' `speechEngine` choice:
+/// [SpeechEngine.onDevice] (default, free, offline, uses the phone's own
+/// recognizer), [SpeechEngine.sarvam] (needs an API key, upload-and-wait —
+/// see [SarvamSpeechProvider]'s doc comment), or [SpeechEngine.whisper]
+/// (free, offline, on-device Whisper — needs its model downloaded once).
 ///
 /// A Vosk-backed hybrid provider (`vosk_flutter_service`; offline, reliable
 /// live captions for the languages it has a model for) was tried here and
@@ -31,10 +33,11 @@ import '../../domain/speech_repository.dart';
 /// the dependency itself had to come out.
 final speechProviderImplProvider = Provider<SpeechProvider>((ref) {
   final settings = ref.watch(settingsControllerProvider).value;
-  if (settings?.speechEngine == SpeechEngine.sarvam) {
-    return SarvamSpeechProvider(apiKey: sarvamApiKey(settings));
-  }
-  return OnDeviceSpeechProvider();
+  return switch (settings?.speechEngine) {
+    SpeechEngine.sarvam => SarvamSpeechProvider(apiKey: sarvamApiKey(settings)),
+    SpeechEngine.whisper => WhisperSpeechProvider(),
+    SpeechEngine.onDevice || null => OnDeviceSpeechProvider(),
+  };
 });
 
 /// The Sarvam key actually in force: whatever was typed in Settings, else
