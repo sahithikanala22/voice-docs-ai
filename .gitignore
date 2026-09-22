@@ -45,6 +45,13 @@ migrate_working_dir/
 .env.*
 !.env.example
 
+# Play Store release signing key — losing control of this or committing it
+# would mean either leaking the app's signing identity or being unable to
+# ever update the app on the Play Store again.
+android/key.properties
+*.jks
+*.keystore
+
 # Symbolication related
 app.*.symbols
 

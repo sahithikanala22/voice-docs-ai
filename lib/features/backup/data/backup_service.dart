@@ -43,7 +43,9 @@ class BackupService {
   /// Writes a timestamped backup file to the temp dir and returns it, ready
   /// to hand to `share_plus` — same pattern as the PDF/Word exporters.
   Future<File> exportToFile() async {
-    final data = {for (final entry in _backupKeys.entries) entry.key: _prefs.getString(entry.value)};
+    final data = {
+      for (final entry in _backupKeys.entries) entry.key: _stripSecrets(entry.key, _prefs.getString(entry.value)),
+    };
 
     final payload = {
       'app': AppConstants.appName,
@@ -81,6 +83,21 @@ class BackupService {
       if (value is String) {
         await _prefs.setString(entry.value, value);
       }
+    }
+  }
+
+  /// A backup file gets shared/saved wherever the user chooses (email, cloud
+  /// drive, messaging apps) — a personal API key has no business riding
+  /// along in it. Restoring a backup on a new device just leaves the field
+  /// unset, same as a fresh install; the user re-enters their key.
+  String? _stripSecrets(String key, String? json) {
+    if (key != 'settings' || json == null) return json;
+    try {
+      final settings = jsonDecode(json) as Map<String, dynamic>;
+      settings.remove('sarvamApiKey');
+      return jsonEncode(settings);
+    } catch (_) {
+      return json;
     }
   }
 }
