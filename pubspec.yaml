@@ -91,7 +91,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/icon.png
-    # Holds SARVAM_API_KEY. Gitignored, so it won't exist on a fresh clone —
-    # the trailing slash form tolerates that (a bare `- .env` would fail the
-    # build outright), and main.dart treats a missing file as "no key".
-    - .env
+    # `.env` (holding SARVAM_API_KEY) is deliberately NOT bundled here. A
+    # bundled key gets shipped as a plain, extractable asset inside every
+    # install — fine for a personal build kept off a store, but not once the
+    # app is publicly distributed (Play Store). AppEnv.sarvamApiKey now
+    # always resolves empty; users supply their own key in Settings.
