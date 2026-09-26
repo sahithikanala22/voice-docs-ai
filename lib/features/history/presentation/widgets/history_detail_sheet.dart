@@ -122,15 +122,25 @@ void showHistoryDetailSheet(
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => ref
-                      .read(ttsControllerProvider.notifier)
-                      .speak(
-                        item.sourceText,
-                        languageByCode(item.sourceLanguageCode).localeHint,
-                      ),
-                  icon: const Icon(Icons.volume_up_rounded),
-                  label: const Text('Play'),
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final isSpeaking = ref.watch(ttsControllerProvider);
+                    return FilledButton.icon(
+                      onPressed: () {
+                        final controller = ref.read(ttsControllerProvider.notifier);
+                        if (isSpeaking) {
+                          controller.stop();
+                        } else {
+                          controller.speak(
+                            item.sourceText,
+                            languageByCode(item.sourceLanguageCode).localeHint,
+                          );
+                        }
+                      },
+                      icon: Icon(isSpeaking ? Icons.stop_rounded : Icons.volume_up_rounded),
+                      label: Text(isSpeaking ? 'Stop' : 'Play'),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 16),
