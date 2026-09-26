@@ -1,20 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
+import 'package:ai_voice_docs/features/diary/presentation/providers/diary_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_filter_chip.dart';
-import 'package:ai_voice_docs/features/history/data/history_item.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/history/presentation/widgets/history_detail_sheet.dart';
 import 'package:ai_voice_docs/features/history/presentation/widgets/history_tile.dart';
 import 'package:ai_voice_docs/features/history/presentation/widgets/share_format_sheet.dart';
+import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
 
+import '../../domain/calendar_day_item.dart';
 import '../widgets/add_entry_sheet.dart';
+import '../widgets/calendar_day_item_tile.dart';
 import '../widgets/month_calendar_grid.dart';
 import '../widgets/year_heatmap_view.dart';
 
@@ -43,6 +47,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final historyAsync = ref.watch(historyControllerProvider);
     final foldersAsync = ref.watch(folderControllerProvider);
     final folders = foldersAsync.value ?? const [];
+    final tasks = ref.watch(taskControllerProvider).value ?? const [];
+    final diaryEntries = ref.watch(diaryControllerProvider).value ?? const [];
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -62,10 +68,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         bottom: const GradientAppBarUnderline(),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showAddEntrySheet(context, initialDate: _selectedDay),
-        tooltip: 'Add entry for this day',
+        onPressed: () => _showAddChooser(context),
+        tooltip: 'Add for this day',
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Add entry'),
+        label: const Text('Add'),
       ),
       body: PaperBackground(
         child: SafeArea(
@@ -84,11 +90,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         )
                         .toList();
 
-              final entriesByDay = <DateTime, List<HistoryItem>>{};
+              // Tasks and diary entries have no folder concept, so they only
+              // ever show up under the "All" filter — picking a specific
+              // folder narrows to just the voice entries filed there.
+              final showOtherTypes = _filterFolderId == null;
+
+              final entriesByDay = <DateTime, List<CalendarDayItem>>{};
               for (final item in filteredItems) {
-                entriesByDay
-                    .putIfAbsent(DateUtils.dateOnly(item.timestamp), () => [])
-                    .add(item);
+                entriesByDay.putIfAbsent(DateUtils.dateOnly(item.timestamp), () => []).add(HistoryDayItem(item));
+              }
+              if (showOtherTypes) {
+                for (final task in tasks) {
+                  if (task.reminderAt == null) continue;
+                  entriesByDay
+                      .putIfAbsent(DateUtils.dateOnly(task.reminderAt!), () => [])
+                      .add(TaskDayItem(task));
+                }
+                for (final entry in diaryEntries) {
+                  entriesByDay.putIfAbsent(DateUtils.dateOnly(entry.date), () => []).add(DiaryDayItem(entry));
+                }
+              }
+              for (final dayItems in entriesByDay.values) {
+                dayItems.sort((a, b) => a.sortTime.compareTo(b.sortTime));
               }
 
               final monthItems = filteredItems
@@ -103,7 +126,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   .where((e) => e.timestamp.year == _visibleMonth.year)
                   .length;
               final selectedDayEntries =
-                  entriesByDay[_selectedDay] ?? const <HistoryItem>[];
+                  entriesByDay[_selectedDay] ?? const <CalendarDayItem>[];
               final today = DateUtils.dateOnly(DateTime.now());
               final isToday = DateUtils.isSameDay(_selectedDay, today);
               final isCurrentMonth =
@@ -326,10 +349,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               if (dayItems == null || dayItems.isEmpty) {
                                 return const [];
                               }
-                              return {
-                                for (final item in dayItems)
-                                  folderColorFor(folders, item.folderId),
-                              }.toList();
+                              // History items keep their per-folder color; a
+                              // task/diary entry has no folder, so it gets one
+                              // shared neutral dot instead.
+                              final colors = <Color>{};
+                              for (final item in dayItems) {
+                                switch (item) {
+                                  case HistoryDayItem():
+                                    colors.add(folderColorFor(folders, item.item.folderId));
+                                  case TaskDayItem() || DiaryDayItem():
+                                    colors.add(scheme.tertiary);
+                                }
+                              }
+                              return colors.toList();
                             },
                           ),
                         ),
@@ -388,18 +420,15 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                     icon: Icons.event_note_outlined,
                                     title: 'No entries this day',
                                     subtitle:
-                                        'Voice transcripts saved on this day will show up here.',
+                                        'Voice entries, tasks, and diary entries saved on this day will show up here.',
                                   ),
                                 ),
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 16),
                                   child: TextButton.icon(
-                                    onPressed: () => showAddEntrySheet(
-                                      context,
-                                      initialDate: _selectedDay,
-                                    ),
+                                    onPressed: () => _showAddChooser(context),
                                     icon: const Icon(Icons.add_rounded),
-                                    label: const Text('Add entry for this day'),
+                                    label: const Text('Add for this day'),
                                   ),
                                 ),
                               ],
@@ -410,32 +439,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                               ),
                               itemCount: selectedDayEntries.length,
                               itemBuilder: (context, index) {
-                                final item = selectedDayEntries[index];
-                                return HistoryTile(
-                                  item: item,
-                                  folder: folderByIdOrNull(
-                                    folders,
-                                    item.folderId,
-                                  ),
-                                  onTap: () => showHistoryDetailSheet(
-                                    context,
-                                    ref,
-                                    item,
-                                  ),
-                                  onDelete: () {
-                                    ref
-                                        .read(
-                                          historyControllerProvider.notifier,
-                                        )
-                                        .removeEntry(item.id);
-                                    AppSnackbar.show(
-                                      context,
-                                      'Removed from history',
-                                    );
-                                  },
-                                  onShare: () =>
-                                      showShareFormatSheet(context, item),
-                                );
+                                final dayItem = selectedDayEntries[index];
+                                return switch (dayItem) {
+                                  HistoryDayItem(item: final item) => HistoryTile(
+                                      item: item,
+                                      folder: folderByIdOrNull(folders, item.folderId),
+                                      onTap: () => showHistoryDetailSheet(context, ref, item),
+                                      onDelete: () {
+                                        ref.read(historyControllerProvider.notifier).removeEntry(item.id);
+                                        AppSnackbar.show(context, 'Removed from history');
+                                      },
+                                      onShare: () => showShareFormatSheet(context, item),
+                                    ),
+                                  TaskDayItem(task: final task) => TaskDayTile(task: task),
+                                  DiaryDayItem(entry: final entry) => DiaryDayTile(entry: entry),
+                                };
                               },
                             ),
                     ),
@@ -447,6 +465,80 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ),
       ),
     );
+  }
+
+  /// FAB entry point: which of the three kinds of thing to add for
+  /// [_selectedDay]. Voice keeps using the existing sheet unchanged; Task and
+  /// Diary are new here, each landing on the day being viewed.
+  Future<void> _showAddChooser(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.mic_none_rounded),
+              title: const Text('Voice entry'),
+              onTap: () => Navigator.pop(sheetContext, 'voice'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.checklist_rounded),
+              title: const Text('Task'),
+              onTap: () => Navigator.pop(sheetContext, 'task'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.auto_stories_outlined),
+              title: const Text('Diary entry'),
+              onTap: () => Navigator.pop(sheetContext, 'diary'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+
+    switch (choice) {
+      case 'voice':
+        await showAddEntrySheet(context, initialDate: _selectedDay);
+      case 'task':
+        await _addTaskForSelectedDay(context);
+      case 'diary':
+        if (context.mounted) {
+          context.push('/diary-entry/new', extra: {'date': _selectedDay});
+        }
+    }
+  }
+
+  Future<void> _addTaskForSelectedDay(BuildContext context) async {
+    final controller = TextEditingController();
+    final title = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Add task'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(hintText: 'What do you need to do?'),
+          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    final trimmed = title?.trim();
+    if (trimmed == null || trimmed.isEmpty || !mounted) return;
+    await ref.read(taskControllerProvider.notifier).addTask(
+          trimmed,
+          reminderAt: DateTime(_selectedDay.year, _selectedDay.month, _selectedDay.day, 9),
+        );
   }
 }
 

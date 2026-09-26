@@ -30,11 +30,16 @@ const _speechTag = 'diary-editor';
 const _maxPhotoDimension = 2048.0;
 const _photoQuality = 85;
 
-/// Writes a new diary entry, or edits the one with [entryId].
+/// Writes a new diary entry, or edits the one with [entryId]. [initialDate]
+/// only applies to a new entry (ignored when [entryId] is set, since an
+/// existing entry keeps its own date) — used by Calendar's "add for this
+/// day" flow so the entry lands on the day being viewed instead of always
+/// defaulting to today.
 class DiaryEditorScreen extends ConsumerStatefulWidget {
-  const DiaryEditorScreen({super.key, this.entryId});
+  const DiaryEditorScreen({super.key, this.entryId, this.initialDate});
 
   final String? entryId;
+  final DateTime? initialDate;
 
   @override
   ConsumerState<DiaryEditorScreen> createState() => _DiaryEditorScreenState();
@@ -87,7 +92,7 @@ class _DiaryEditorScreenState extends ConsumerState<DiaryEditorScreen> {
     final id = widget.entryId;
     final existing = id == null ? null : ref.read(diaryEntryProvider(id));
     _existing = existing;
-    _date = DateUtils.dateOnly(existing?.date ?? DateTime.now());
+    _date = DateUtils.dateOnly(existing?.date ?? widget.initialDate ?? DateTime.now());
     _title.text = existing?.title ?? '';
     _bodyController = QuillController(
       document: diaryDocumentFrom(bodyDelta: existing?.bodyDelta, plainBody: existing?.body ?? ''),

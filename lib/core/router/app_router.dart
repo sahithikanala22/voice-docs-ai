@@ -84,7 +84,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/diary-memories', builder: (context, state) => const DiaryMemoriesScreen()),
       GoRoute(
         path: '/diary-entry/new',
-        builder: (context, state) => const DiaryEditorScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return DiaryEditorScreen(initialDate: extra?['date'] as DateTime?);
+        },
       ),
       GoRoute(
         path: '/diary-entry/:id',

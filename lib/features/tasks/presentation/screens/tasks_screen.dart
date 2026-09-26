@@ -2,27 +2,69 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
 import 'package:ai_voice_docs/core/providers/notification_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
 
 import '../../data/task.dart';
 import '../providers/task_providers.dart';
 
+/// Session tag for the inline quick-add field's dictation — distinct from
+/// every other screen's mic session so it never leaks state elsewhere.
+const _quickAddSessionTag = 'tasks-quick-add';
+
+enum _TaskFilter { today, upcoming, completed }
+
 /// A simple checklist, its own tab rather than a card squeezed onto the
 /// Voice screen — add a task, check it off, it stays until you clear it.
 /// Deliberately date-less (see [Task]'s doc comment): a running list you
-/// clear as you go, not tied to the Calendar.
-class TasksScreen extends ConsumerWidget {
+/// clear as you go, not tied to the Calendar. The Today/Upcoming split below
+/// is purely a view over [Task.reminderAt] — a task with no reminder has no
+/// "day" at all and always shows under Today, matching that same doc
+/// comment's reasoning.
+class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends ConsumerState<TasksScreen> {
+  final _quickAddController = TextEditingController();
+  _TaskFilter _filter = _TaskFilter.today;
+
+  @override
+  void dispose() {
+    _quickAddController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tasks = ref.watch(taskControllerProvider).value ?? const [];
     final pending = tasks.where((t) => !t.isDoneNow).toList();
     final completed = tasks.where((t) => t.isDoneNow).toList();
+    final today = DateUtils.dateOnly(DateTime.now());
+    final todayTasks = pending
+        .where((t) => t.reminderAt == null || !DateUtils.dateOnly(t.reminderAt!).isAfter(today))
+        .toList();
+    final upcomingTasks = pending
+        .where((t) => t.reminderAt != null && DateUtils.dateOnly(t.reminderAt!).isAfter(today))
+        .toList();
+
+    final quickAdd = ref.watch(speechControllerProvider(_quickAddSessionTag));
+    if (quickAdd.isListening && _quickAddController.text != quickAdd.transcript) {
+      _quickAddController.value = _quickAddController.value.copyWith(
+        text: quickAdd.transcript,
+        selection: TextSelection.collapsed(offset: quickAdd.transcript.length),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -43,42 +85,89 @@ class TasksScreen extends ConsumerWidget {
                   subtitle:
                       'Tap "Add task" to start a checklist you can clear as you go.',
                 )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+              : Column(
                   children: [
-                    for (final task in pending) _TaskRow(task: task),
-                    if (completed.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Completed',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                            TextButton(
-                              onPressed: () => ref
-                                  .read(taskControllerProvider.notifier)
-                                  .clearCompleted(),
-                              child: const Text('Clear completed'),
-                            ),
-                          ],
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                      child: SegmentedButton<_TaskFilter>(
+                        segments: [
+                          const ButtonSegment(value: _TaskFilter.today, label: Text('Today')),
+                          const ButtonSegment(value: _TaskFilter.upcoming, label: Text('Upcoming')),
+                          ButtonSegment(
+                            value: _TaskFilter.completed,
+                            label: Text('Completed (${completed.length})'),
+                          ),
+                        ],
+                        selected: {_filter},
+                        onSelectionChanged: (value) => setState(() => _filter = value.first),
                       ),
-                      for (final task in completed) _TaskRow(task: task),
-                    ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: TextField(
+                        controller: _quickAddController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: quickAdd.isListening ? 'Listening…' : 'Add a task (or speak)',
+                          prefixIcon: const Icon(Icons.add_rounded),
+                          suffixIcon: IconButton(
+                            icon: Icon(quickAdd.isListening ? Icons.stop_circle_rounded : Icons.mic_none_rounded),
+                            tooltip: quickAdd.isListening ? 'Stop' : 'Dictate',
+                            onPressed: () => _toggleQuickAddListening(quickAdd.isListening),
+                          ),
+                        ),
+                        onSubmitted: (_) => _submitQuickAdd(),
+                      ),
+                    ),
+                    Expanded(
+                      child: switch (_filter) {
+                        _TaskFilter.today => _TaskList(tasks: todayTasks, emptyLabel: 'Nothing for today'),
+                        _TaskFilter.upcoming =>
+                          _TaskList(tasks: upcomingTasks, emptyLabel: 'No upcoming tasks'),
+                        _TaskFilter.completed => Column(
+                            children: [
+                              if (completed.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: () =>
+                                          ref.read(taskControllerProvider.notifier).clearCompleted(),
+                                      child: const Text('Clear completed'),
+                                    ),
+                                  ),
+                                ),
+                              Expanded(
+                                child: _TaskList(tasks: completed, emptyLabel: 'Nothing completed yet'),
+                              ),
+                            ],
+                          ),
+                      },
+                    ),
                   ],
                 ),
         ),
       ),
     );
+  }
+
+  Future<void> _toggleQuickAddListening(bool isListening) async {
+    final controller = ref.read(speechControllerProvider(_quickAddSessionTag).notifier);
+    if (isListening) {
+      await controller.stopListening();
+    } else {
+      final language = ref.read(settingsControllerProvider).value?.sourceLanguageCode;
+      await controller.startListening(languageByCode(language ?? AppConstants.defaultSourceLanguageCode).localeHint);
+    }
+  }
+
+  Future<void> _submitQuickAdd() async {
+    final text = _quickAddController.text.trim();
+    if (text.isEmpty) return;
+    await ref.read(taskControllerProvider.notifier).addTask(text);
+    _quickAddController.clear();
+    ref.read(speechControllerProvider(_quickAddSessionTag).notifier).clearTranscript();
   }
 
   Future<void> _addTask(BuildContext context, WidgetRef ref) async {
@@ -245,6 +334,33 @@ Future<DateTime?> _pickReminderTime(
     pickedTime?.hour ?? initial.hour,
     pickedTime?.minute ?? initial.minute,
   );
+}
+
+/// One tab's list — a shared shape for Today/Upcoming/Completed so each tab
+/// doesn't need to repeat the empty-state/list boilerplate.
+class _TaskList extends StatelessWidget {
+  const _TaskList({required this.tasks, required this.emptyLabel});
+
+  final List<Task> tasks;
+  final String emptyLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tasks.isEmpty) {
+      return Center(
+        child: Text(
+          emptyLabel,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+      children: [for (final task in tasks) _TaskRow(task: task)],
+    );
+  }
 }
 
 class _TaskRow extends ConsumerWidget {
