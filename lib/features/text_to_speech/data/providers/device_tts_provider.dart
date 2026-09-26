@@ -86,6 +86,11 @@ class DeviceTtsProvider implements TtsProvider {
 
   @override
   Future<void> speak(String text, String languageCode, {String? voiceName}) async {
+    // Defensive flush: guarantees no previously in-flight utterance can ever
+    // continue (or queue behind) a new one, regardless of how quickly speak
+    // is called again after a stop.
+    await _tts.stop();
+
     final deviceLanguages = await _loadDeviceLanguages();
     final resolvedLanguage = _resolveLanguage(languageCode, deviceLanguages);
     await _tts.setLanguage(resolvedLanguage);
