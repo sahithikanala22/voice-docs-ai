@@ -10,6 +10,7 @@ import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import '../../data/diary_entry.dart';
 import '../providers/diary_providers.dart';
 import '../widgets/diary_entry_card.dart';
+import '../widgets/diary_on_this_day_card.dart';
 
 /// The diary: a personal journal of composed entries — photos, a mood and a
 /// themed page each. Unlike History (quick voice captures), nothing lands here
@@ -38,6 +39,13 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diary'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_rounded),
+            tooltip: 'Memories',
+            onPressed: () => context.push('/diary-memories'),
+          ),
+        ],
         bottom: const GradientAppBarUnderline(),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -79,6 +87,7 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 4),
+                    const DiaryOnThisDayCard(),
                     _DiaryStats(entries: entries),
                     const SizedBox(height: 12),
                     TextField(

@@ -10,6 +10,7 @@ import 'package:ai_voice_docs/features/app_lock/presentation/screens/signup_scre
 import 'package:ai_voice_docs/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:ai_voice_docs/features/diary/presentation/screens/diary_editor_screen.dart';
 import 'package:ai_voice_docs/features/diary/presentation/screens/diary_entry_screen.dart';
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_memories_screen.dart';
 import 'package:ai_voice_docs/features/diary/presentation/screens/diary_screen.dart';
 import 'package:ai_voice_docs/features/history/presentation/screens/history_screen.dart';
 import 'package:ai_voice_docs/features/home/presentation/screens/home_screen.dart';
@@ -80,6 +81,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
       GoRoute(path: '/voice', builder: (context, state) => const VoiceToTextScreen()),
+      GoRoute(path: '/diary-memories', builder: (context, state) => const DiaryMemoriesScreen()),
       GoRoute(
         path: '/diary-entry/new',
         builder: (context, state) => const DiaryEditorScreen(),
