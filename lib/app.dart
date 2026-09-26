@@ -20,7 +20,7 @@ class AiVoiceDocsApp extends ConsumerWidget {
     final settings = ref.watch(settingsControllerProvider).value;
     final themeMode = settings?.themeMode ?? ThemeMode.system;
     final useDynamicColor = settings?.useDynamicColor ?? false;
-    final seed = (settings?.palette ?? AppPalette.indigo).seed;
+    final palette = settings?.palette ?? AppPalette.indigo;
 
     // Side-effect only — keeps the launcher badge in sync for the app's
     // whole lifetime, not tied to whatever screen happens to be showing.
@@ -39,8 +39,8 @@ class AiVoiceDocsApp extends ConsumerWidget {
         if (isCheckingAccount) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(dynamicScheme: lightScheme, seed: seed),
-            darkTheme: AppTheme.dark(dynamicScheme: darkScheme, seed: seed),
+            theme: AppTheme.light(dynamicScheme: lightScheme, palette: palette),
+            darkTheme: AppTheme.dark(dynamicScheme: darkScheme, palette: palette),
             themeMode: themeMode,
             home: const Scaffold(body: Center(child: CircularProgressIndicator())),
           );
@@ -49,8 +49,8 @@ class AiVoiceDocsApp extends ConsumerWidget {
         return MaterialApp.router(
           title: AppConstants.appName,
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(dynamicScheme: lightScheme, seed: seed),
-          darkTheme: AppTheme.dark(dynamicScheme: darkScheme, seed: seed),
+          theme: AppTheme.light(dynamicScheme: lightScheme, palette: palette),
+          darkTheme: AppTheme.dark(dynamicScheme: darkScheme, palette: palette),
           themeMode: themeMode,
           // Required by the diary editor's rich-text toolbar (flutter_quill).
           localizationsDelegates: const [

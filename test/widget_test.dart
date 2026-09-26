@@ -22,7 +22,7 @@ class _FakeUnlockedAppLockController extends AppLockController {
 }
 
 void main() {
-  testWidgets('App launches on the voice-to-text home tab with bottom nav', (tester) async {
+  testWidgets('App launches on the Home dashboard tab with bottom nav', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 
@@ -50,10 +50,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    expect(find.text('Today'), findsOneWidget);
-    expect(find.text('Voice'), findsOneWidget);
+    // 'Home' appears twice: the AppBar title and the bottom-nav label.
+    expect(find.text('Home'), findsNWidgets(2));
+    expect(find.text('Tasks'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Tap the mic to start speaking'), findsOneWidget);
+    expect(find.text('Tell me about your day'), findsOneWidget);
   });
 }

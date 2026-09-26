@@ -1,15 +1,61 @@
 import 'package:flutter/material.dart';
 
+import 'package:ai_voice_docs/core/theme/appearance.dart';
+
 /// Material 3 theming for Voice Docs AI.
 ///
 /// Both themes are seeded from the same brand indigo — sampled from the
 /// app's mic+document logomark — so light/dark stay visually related, per
 /// Material 3's dynamic color guidance, rather than hand-picking a separate
-/// flat palette per mode.
+/// flat palette per mode. [AppPalette.midnight]'s dark scheme is the one
+/// exception: a genuinely hand-crafted `ColorScheme`, not algorithmically
+/// derived, since the "Midnight" preset is meant to look like a designed
+/// dark theme rather than a dark tint of the brand color.
 class AppTheme {
   const AppTheme._();
 
-  static const Color _seed = Color(0xFF5B67F1);
+  static const ColorScheme _midnightDark = ColorScheme.dark(
+    surface: Color(0xFF0D0E1A),
+    surfaceContainerLowest: Color(0xFF07080F),
+    surfaceContainerLow: Color(0xFF12131F),
+    surfaceContainer: Color(0xFF171829),
+    surfaceContainerHigh: Color(0xFF1D1F33),
+    surfaceContainerHighest: Color(0xFF24263D),
+    primary: Color(0xFF8C7CF7),
+    onPrimary: Color(0xFF1A1030),
+    primaryContainer: Color(0xFF3A2E70),
+    onPrimaryContainer: Color(0xFFE6DEFF),
+    secondary: Color(0xFF7A7FE0),
+    onSecondary: Color(0xFF181A33),
+    secondaryContainer: Color(0xFF2E2F55),
+    onSecondaryContainer: Color(0xFFDCDCFF),
+    tertiary: Color(0xFFCB9BFF),
+    onTertiary: Color(0xFF2C1854),
+    tertiaryContainer: Color(0xFF4A3480),
+    onTertiaryContainer: Color(0xFFEEDCFF),
+    error: Color(0xFFFFB4AB),
+    onError: Color(0xFF690005),
+    errorContainer: Color(0xFF93000A),
+    onErrorContainer: Color(0xFFFFDAD6),
+    outline: Color(0xFF46485F),
+    outlineVariant: Color(0xFF2B2C42),
+    onSurface: Color(0xFFF2F1FA),
+    onSurfaceVariant: Color(0xFFB7B7CE),
+    inverseSurface: Color(0xFFF2F1FA),
+    onInverseSurface: Color(0xFF15172A),
+    inversePrimary: Color(0xFF6C5CE0),
+    surfaceTint: Color(0xFF8C7CF7),
+  );
+
+  /// The `ColorScheme` for [palette] at [brightness] — hand-crafted for
+  /// Midnight's dark mode, algorithmically derived from its seed for every
+  /// other combination. Also used by [ThemePresetPicker]-style previews that
+  /// need to render a palette+mode combination without building a whole
+  /// `ThemeData`.
+  static ColorScheme schemeFor(AppPalette palette, Brightness brightness) {
+    if (palette == AppPalette.midnight && brightness == Brightness.dark) return _midnightDark;
+    return ColorScheme.fromSeed(seedColor: palette.seed, brightness: brightness);
+  }
 
   /// The logo's radiating sound-wave burst, cyan through orange — used for
   /// decorative accents (e.g. the mic button's pulse rings) that should echo
@@ -64,15 +110,13 @@ class AppTheme {
   /// wallpaper colors, since "Bold & vibrant" was a deliberate design choice
   /// that a muted system palette could otherwise quietly override.
   ///
-  /// [seed] is the user's chosen palette color (defaults to the brand
+  /// [palette] is the user's chosen accent palette (defaults to the brand
   /// indigo); it's ignored whenever [dynamicScheme] is supplied.
-  static ThemeData light({ColorScheme? dynamicScheme, Color seed = _seed}) => _base(
-        dynamicScheme ?? ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
-      );
+  static ThemeData light({ColorScheme? dynamicScheme, AppPalette palette = AppPalette.indigo}) =>
+      _base(dynamicScheme ?? schemeFor(palette, Brightness.light));
 
-  static ThemeData dark({ColorScheme? dynamicScheme, Color seed = _seed}) => _base(
-        dynamicScheme ?? ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark),
-      );
+  static ThemeData dark({ColorScheme? dynamicScheme, AppPalette palette = AppPalette.indigo}) =>
+      _base(dynamicScheme ?? schemeFor(palette, Brightness.dark));
 
   static ThemeData _base(ColorScheme scheme) {
     return ThemeData(

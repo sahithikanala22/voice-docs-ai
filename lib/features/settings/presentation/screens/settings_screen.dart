@@ -30,6 +30,7 @@ import '../widgets/sarvam_speech_settings.dart';
 import '../widgets/whisper_speech_settings.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
+import '../widgets/theme_preset_picker.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -100,6 +101,28 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsSection(
                   title: 'Palette',
                   children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Quick themes', style: Theme.of(context).textTheme.titleMedium),
+                          const SizedBox(height: 4),
+                          Text(
+                            'One tap for a whole look — fine-tune below if you want something in between',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ThemePresetPicker(
+                            settings: settings,
+                            onSelected: controller.applyThemePreset,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(height: 1),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Column(

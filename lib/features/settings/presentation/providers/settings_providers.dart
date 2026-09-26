@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_voice_docs/core/data/app_background_photo_store.dart';
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/theme/appearance.dart';
+import 'package:ai_voice_docs/core/theme/theme_presets.dart';
 import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
 
 import '../../data/settings_local_datasource.dart';
@@ -60,6 +61,18 @@ class SettingsController extends AsyncNotifier<AppSettings> {
   Future<void> setPalette(AppPalette palette) => _update((s) => s.copyWith(palette: palette));
 
   Future<void> setPaperStyle(PaperStyle style) => _update((s) => s.copyWith(paperStyle: style));
+
+  /// Applies a named [ThemePreset] — sets mode/palette/paper style together
+  /// and turns off Material You, since leaving it on would otherwise make
+  /// the pick silently invisible (dynamic color always wins over palette).
+  Future<void> applyThemePreset(ThemePreset preset) => _update(
+        (s) => s.copyWith(
+          themeMode: preset.themeMode,
+          palette: preset.palette,
+          paperStyle: preset.paperStyle,
+          useDynamicColor: false,
+        ),
+      );
 
   /// Sets a newly picked custom background photo and switches to it
   /// immediately. Deleting the previous file (if replacing one) is the

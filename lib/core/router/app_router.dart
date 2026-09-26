@@ -12,6 +12,7 @@ import 'package:ai_voice_docs/features/diary/presentation/screens/diary_editor_s
 import 'package:ai_voice_docs/features/diary/presentation/screens/diary_entry_screen.dart';
 import 'package:ai_voice_docs/features/diary/presentation/screens/diary_screen.dart';
 import 'package:ai_voice_docs/features/history/presentation/screens/history_screen.dart';
+import 'package:ai_voice_docs/features/home/presentation/screens/home_screen.dart';
 import 'package:ai_voice_docs/features/settings/presentation/screens/language_picker_screen.dart';
 import 'package:ai_voice_docs/features/settings/presentation/screens/settings_screen.dart';
 import 'package:ai_voice_docs/features/speech_to_text/presentation/screens/voice_to_text_screen.dart';
@@ -58,7 +59,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) => RootScaffold(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(routes: [
-            GoRoute(path: '/', builder: (context, state) => const VoiceToTextScreen()),
+            GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
@@ -78,6 +79,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
+      GoRoute(path: '/voice', builder: (context, state) => const VoiceToTextScreen()),
       GoRoute(
         path: '/diary-entry/new',
         builder: (context, state) => const DiaryEditorScreen(),
