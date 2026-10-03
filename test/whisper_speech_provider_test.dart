@@ -24,5 +24,12 @@ void main() {
     test('a bare code with no region passes through lowercased', () {
       expect(WhisperSpeechProvider.whisperLanguageCode('EN'), 'en');
     });
+
+    test('the auto-detect sentinel passes through unchanged', () {
+      // whisper.cpp treats the literal string 'auto' as "detect the spoken
+      // language instead of assuming one" — this must never be split or
+      // altered the way a real locale code is.
+      expect(WhisperSpeechProvider.whisperLanguageCode('auto'), 'auto');
+    });
   });
 }

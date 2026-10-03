@@ -1,22 +1,27 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:whisper_ggml/whisper_ggml.dart';
 
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 import 'package:ai_voice_docs/features/speech_to_text/data/providers/whisper_speech_provider.dart';
 
 /// Shows whether Whisper's offline model has been downloaded yet, and lets
 /// it be fetched ahead of time — with no API key to enter, this is the only
 /// setup this engine needs. Downloading here means the first real recording
-/// doesn't stall on a ~140MB fetch.
-class WhisperSpeechSettings extends StatefulWidget {
+/// doesn't stall on a ~140MB fetch. Also offers Whisper's language
+/// auto-detection, since its model (unlike the on-device/Sarvam engines)
+/// genuinely supports transcribing whatever language is spoken without
+/// being told in advance.
+class WhisperSpeechSettings extends ConsumerStatefulWidget {
   const WhisperSpeechSettings({super.key});
 
   @override
-  State<WhisperSpeechSettings> createState() => _WhisperSpeechSettingsState();
+  ConsumerState<WhisperSpeechSettings> createState() => _WhisperSpeechSettingsState();
 }
 
-class _WhisperSpeechSettingsState extends State<WhisperSpeechSettings> {
+class _WhisperSpeechSettingsState extends ConsumerState<WhisperSpeechSettings> {
   final _controller = WhisperController();
 
   /// null while the initial existence check is still running.
@@ -56,6 +61,9 @@ class _WhisperSpeechSettingsState extends State<WhisperSpeechSettings> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final settings = ref.watch(settingsControllerProvider).value;
+    final autoDetect = settings?.whisperAutoDetectLanguage ?? false;
+    final controller = ref.read(settingsControllerProvider.notifier);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -112,6 +120,17 @@ class _WhisperSpeechSettingsState extends State<WhisperSpeechSettings> {
             'engine, especially with accents, at the cost of more battery/CPU per recording. If '
             'you don\'t download it here, the first recording downloads it instead.',
             style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+          const Divider(height: 24),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Auto-detect language'),
+            subtitle: const Text(
+              'Transcribe whatever language you speak instead of only the one selected above — '
+              'useful if you switch languages mid-recording or don\'t want to pick one at all.',
+            ),
+            value: autoDetect,
+            onChanged: controller.setWhisperAutoDetectLanguage,
           ),
         ],
       ),

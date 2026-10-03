@@ -33,6 +33,12 @@ abstract class AppSettings with _$AppSettings {
     /// never bundled in the app or committed to source, so it can't leak via
     /// the APK or the repo.
     String? sarvamApiKey,
+    /// When [speechEngine] is [SpeechEngine.whisper], transcribe in whatever
+    /// language is actually spoken instead of forcing the app's selected
+    /// language — Whisper's own model supports this natively. Off by
+    /// default since auto-detection is marginally less accurate than
+    /// telling it the language up front when you already know it.
+    @Default(false) bool whisperAutoDetectLanguage,
     /// The chosen text-to-speech voice name per language code — a language
     /// with no entry just uses the device's default voice for that
     /// language. Keyed by `Language.code` (not the region-qualified locale)

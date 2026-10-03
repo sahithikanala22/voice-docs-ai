@@ -97,6 +97,9 @@ class SettingsController extends AsyncNotifier<AppSettings> {
   Future<void> setSarvamApiKey(String? apiKey) =>
       _update((s) => s.copyWith(sarvamApiKey: apiKey));
 
+  Future<void> setWhisperAutoDetectLanguage(bool value) =>
+      _update((s) => s.copyWith(whisperAutoDetectLanguage: value));
+
   /// Sets (or, passing null, clears back to the device default) the
   /// preferred TTS voice for [languageCode].
   Future<void> setTtsVoice(String languageCode, String? voiceName) => _update((s) {

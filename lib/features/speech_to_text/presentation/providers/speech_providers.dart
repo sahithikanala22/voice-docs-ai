@@ -111,8 +111,16 @@ class SpeechController extends FamilyNotifier<RecognitionState, String> {
         transcript: '',
       );
 
+      final settings = ref.read(settingsControllerProvider).value;
+      // Whisper's model supports genuine language auto-detection; the other
+      // engines don't, so this only ever applies when Whisper is active.
+      final effectiveLocale =
+          settings?.speechEngine == SpeechEngine.whisper && (settings?.whisperAutoDetectLanguage ?? false)
+              ? 'auto'
+              : localeCode;
+
       await repo.startListening(
-        localeCode: localeCode,
+        localeCode: effectiveLocale,
         onResult: (transcript, isFinal) {
           state = state.copyWith(transcript: transcript, isListening: !isFinal);
         },
