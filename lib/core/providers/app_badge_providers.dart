@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/services/app_badge_service.dart';
@@ -37,5 +40,33 @@ final appBadgeWatcherProvider = Provider<void>((ref) {
 
   ref.listen(taskControllerProvider, (_, _) => refresh());
   ref.listen(historyControllerProvider, (_, _) => refresh());
+
+  // Neither list changing is the only thing that can make the count stale —
+  // a reminder's time simply passing, or a recurring task's daily/weekly
+  // window rolling over at midnight, changes what the count *should* be with
+  // no task/history mutation to react to. Recompute on a timer so the badge
+  // catches up on its own, and immediately on every foreground resume so
+  // reopening the app after a while in the background shows the right count
+  // right away rather than up to a minute later.
+  final timer = Timer.periodic(const Duration(minutes: 1), (_) => refresh());
+  final observer = _BadgeRefreshObserver(refresh);
+  WidgetsBinding.instance.addObserver(observer);
+
+  ref.onDispose(() {
+    timer.cancel();
+    WidgetsBinding.instance.removeObserver(observer);
+  });
+
   refresh();
 });
+
+class _BadgeRefreshObserver extends WidgetsBindingObserver {
+  _BadgeRefreshObserver(this._onResume);
+
+  final VoidCallback _onResume;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _onResume();
+  }
+}
