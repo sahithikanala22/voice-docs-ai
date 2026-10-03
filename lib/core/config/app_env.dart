@@ -14,7 +14,14 @@ abstract final class AppEnv {
     try {
       await dotenv.load();
     } catch (_) {
-      // No .env bundled — the app still runs, and Settings can supply the key.
+      // No .env bundled (e.g. this release build). dotenv.load() throwing
+      // leaves it uninitialized, and every getter below — including
+      // maybeGet, despite the name — throws NotInitializedError against an
+      // uninitialized DotEnv rather than returning null. Explicitly
+      // initialize it empty so [sarvamApiKey] actually falls back to ''
+      // as documented, instead of crashing the first screen that reads it
+      // (Settings' Sarvam panel).
+      dotenv.loadFromString(envString: '', isOptional: true);
     }
   }
 
