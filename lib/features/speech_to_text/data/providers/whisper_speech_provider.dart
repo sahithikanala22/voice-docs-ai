@@ -101,6 +101,15 @@ class WhisperSpeechProvider implements SpeechProvider {
         model: model,
         pcm16Stream: pcmStream,
         lang: whisperLanguageCode(localeCode),
+        // Without this, every single recording — not just the first —
+        // reloads the ~140MB model from disk into native memory before
+        // transcribing a word, which is most of what "Whisper feels slow"
+        // reports turn out to be. Parking it after stop() means only the
+        // very first recording in a session pays that cost; the trade is
+        // the model staying resident in memory meanwhile, which is the
+        // right call for an app whose whole premise is on-device
+        // transcription someone may use repeatedly.
+        keepModelLoaded: true,
       );
       _isListening = true;
       _session!.partials.listen(
