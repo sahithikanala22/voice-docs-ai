@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:record/record.dart';
@@ -23,7 +24,7 @@ const whisperSpeechModel = WhisperModel.base;
 /// engine.
 ///
 /// Unlike the Sarvam provider, this genuinely streams: the model
-/// stays loaded for the session and [WhisperController.transcribeLive]
+/// stays loaded for the session and [startWhisperLiveSession]
 /// emits progressively-refined partial transcripts while you talk, so live
 /// captions work the same way they do for the on-device engine — no
 /// restart-on-silence stitching needed, there's no OS-imposed silence
@@ -97,10 +98,16 @@ class WhisperSpeechProvider implements SpeechProvider {
             });
       }
 
-      _session = await _controller.transcribeLive(
-        model: model,
-        pcm16Stream: pcmStream,
+      // Calls the lower-level session starter directly rather than going
+      // through WhisperController.transcribeLive, which hardcodes 4 threads
+      // with no way to override it — most phones sold in the last several
+      // years have 6-8 cores, so that default leaves real, free speed on
+      // the table. Same model, same weights, same accuracy; just more of
+      // the phone's own CPU actually put to work.
+      _session = await startWhisperLiveSession(
+        modelPath: await _controller.getPath(model),
         lang: whisperLanguageCode(localeCode),
+        threads: Platform.numberOfProcessors.clamp(1, 8),
         // Without this, every single recording — not just the first —
         // reloads the ~140MB model from disk into native memory before
         // transcribing a word, which is most of what "Whisper feels slow"
@@ -112,6 +119,11 @@ class WhisperSpeechProvider implements SpeechProvider {
         keepModelLoaded: true,
       );
       _isListening = true;
+      // startWhisperLiveSession, unlike WhisperController.transcribeLive,
+      // doesn't take the audio stream itself — it only returns the session,
+      // and leaves wiring audio into it to the caller. This mirrors exactly
+      // what transcribeLive does internally.
+      pcmStream.listen(_session!.feed, onDone: _session!.stop, onError: (Object _) => _session!.stop());
       _session!.partials.listen(
         // "Progressively refined transcripts... the full text so far, not a
         // delta" — matches this app's onResult contract exactly, no
