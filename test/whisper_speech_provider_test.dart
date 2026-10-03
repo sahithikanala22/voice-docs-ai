@@ -32,4 +32,34 @@ void main() {
       expect(WhisperSpeechProvider.whisperLanguageCode('auto'), 'auto');
     });
   });
+
+  group('stripNonSpeechTokens', () {
+    test('a whole-string non-speech marker becomes empty', () {
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('[BLANK_AUDIO]'), '');
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('(silence)'), '');
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('[no speech]'), '');
+    });
+
+    test('is case-insensitive and tolerates a space or underscore before AUDIO', () {
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('[blank audio]'), '');
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('[Blank_Audio]'), '');
+    });
+
+    test('a marker mid-sentence is removed, keeping the real words around it', () {
+      expect(
+        WhisperSpeechProvider.stripNonSpeechTokens('buy milk [BLANK_AUDIO] and eggs'),
+        'buy milk and eggs',
+      );
+    });
+
+    test('real speech with no marker passes through unchanged', () {
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('call mom at 5pm'), 'call mom at 5pm');
+    });
+
+    test('bracketed text that is not a known non-speech marker is left alone', () {
+      // Only the known whisper.cpp non-speech descriptors are stripped —
+      // this must never eat a parenthetical the user actually said/wrote.
+      expect(WhisperSpeechProvider.stripNonSpeechTokens('call him (urgent)'), 'call him (urgent)');
+    });
+  });
 }

@@ -52,6 +52,15 @@ class WhisperSpeechProvider implements SpeechProvider {
     void Function(double level)? onSoundLevel,
     required void Function(String message) onError,
   }) async {
+    // Only one native stream session can run at a time (see
+    // WhisperLiveSession's doc comment) — a lingering session from an
+    // unclean teardown (e.g. the caller skipped stopListening/cancel, or a
+    // previous call raced this one) would otherwise make the native side
+    // reject this session's audio with "stream_feed: stream not started".
+    // Defensively tear it down first, same pattern as the on-device
+    // provider's _listenOnce.
+    if (_isListening) await stopListening();
+
     _currentOnResult = onResult;
 
     final granted = await _recorder.hasPermission();
@@ -98,8 +107,8 @@ class WhisperSpeechProvider implements SpeechProvider {
         // "Progressively refined transcripts... the full text so far, not a
         // delta" — matches this app's onResult contract exactly, no
         // stitching needed.
-        (text) => _currentOnResult?.call(text, false),
-        onError: (Object e) => onError('Speech recognition error: $e'),
+        (text) => _currentOnResult?.call(stripNonSpeechTokens(text), false),
+        onError: (Object e) => onError(_friendlyError(e)),
       );
     } catch (e) {
       _isListening = false;
@@ -120,7 +129,7 @@ class WhisperSpeechProvider implements SpeechProvider {
     // how this method gets the final transcript back.
     final finalText = await _session?.stop() ?? '';
     _session = null;
-    _currentOnResult?.call(finalText, true);
+    _currentOnResult?.call(stripNonSpeechTokens(finalText), true);
   }
 
   @override
@@ -142,4 +151,38 @@ class WhisperSpeechProvider implements SpeechProvider {
   @visibleForTesting
   static String whisperLanguageCode(String localeCode) =>
       localeCode.split(RegExp('[-_]')).first.toLowerCase();
+
+  /// The base/tiny Whisper models frequently "transcribe" silence or
+  /// unclear audio as a literal bracketed/parenthesized descriptor —
+  /// `[BLANK_AUDIO]`, `(silence)`, `[no speech]`, `[inaudible]`, `[music]`,
+  /// `[noise]` — instead of just emitting no text. Left in, that reads as
+  /// broken output ("why does it say BLANK_AUDIO") rather than "nothing
+  /// recognizable yet", so every occurrence is stripped wherever it shows
+  /// up in the running transcript, not just when it's the whole string —
+  /// a long dictation can have a quiet stretch tagged mid-sentence.
+  @visibleForTesting
+  static final nonSpeechTokenPattern = RegExp(
+    r'[\[(]\s*(blank[_ ]?audio|no\s*speech|silence|inaudible|music|noise)\s*[\])]',
+    caseSensitive: false,
+  );
+
+  @visibleForTesting
+  static String stripNonSpeechTokens(String text) =>
+      text.replaceAll(nonSpeechTokenPattern, '').replaceAll(RegExp(r' {2,}'), ' ').trim();
+
+  /// `transcribeLive`'s stream errors are raw native/FFI exception text
+  /// (e.g. `Exception: stream_feed: stream not started`) — not meant for a
+  /// user to read. The specific "stream not started" case is the native
+  /// side rejecting audio because the prior session's teardown hadn't
+  /// finished when this one's native stream tried to start (now guarded
+  /// against in [startListening], but the native layer can still surface it
+  /// under load); tell the user to just try again rather than showing them
+  /// FFI internals.
+  static String _friendlyError(Object error) {
+    final message = error.toString();
+    if (message.contains('stream_feed') || message.contains('stream not started')) {
+      return 'Speech recognition was interrupted — tap the mic to try again.';
+    }
+    return 'Speech recognition error: $message';
+  }
 }
