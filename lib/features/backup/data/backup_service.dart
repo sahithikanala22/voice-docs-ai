@@ -94,7 +94,7 @@ class BackupService {
     if (key != 'settings' || json == null) return json;
     try {
       final settings = jsonDecode(json) as Map<String, dynamic>;
-      settings.remove('sarvamApiKey');
+      settings.remove('googleSpeechApiKey');
       return jsonEncode(settings);
     } catch (_) {
       return json;

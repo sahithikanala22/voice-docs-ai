@@ -94,8 +94,8 @@ class SettingsController extends AsyncNotifier<AppSettings> {
 
   Future<void> setSpeechEngine(SpeechEngine engine) => _update((s) => s.copyWith(speechEngine: engine));
 
-  Future<void> setSarvamApiKey(String? apiKey) =>
-      _update((s) => s.copyWith(sarvamApiKey: apiKey));
+  Future<void> setGoogleSpeechApiKey(String? apiKey) =>
+      _update((s) => s.copyWith(googleSpeechApiKey: apiKey));
 
   Future<void> setWhisperAutoDetectLanguage(bool value) =>
       _update((s) => s.copyWith(whisperAutoDetectLanguage: value));

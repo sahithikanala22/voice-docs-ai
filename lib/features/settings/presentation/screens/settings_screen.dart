@@ -26,7 +26,7 @@ import 'package:ai_voice_docs/features/tasks/presentation/providers/task_provide
 import '../providers/settings_providers.dart';
 import '../widgets/palette_picker.dart';
 import '../widgets/paper_style_picker.dart';
-import '../widgets/sarvam_speech_settings.dart';
+import '../widgets/google_speech_settings.dart';
 import '../widgets/whisper_speech_settings.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
@@ -251,8 +251,8 @@ class SettingsScreen extends ConsumerWidget {
                                 label: Text('On-device'),
                               ),
                               ButtonSegment(
-                                value: SpeechEngine.sarvam,
-                                label: Text('Sarvam AI'),
+                                value: SpeechEngine.googleCloud,
+                                label: Text('Google Cloud'),
                               ),
                               ButtonSegment(
                                 value: SpeechEngine.whisper,
@@ -268,8 +268,8 @@ class SettingsScreen extends ConsumerWidget {
                             switch (settings.speechEngine) {
                               SpeechEngine.onDevice =>
                                 'Free and works offline. Reliability depends on your phone\'s own speech recognizer.',
-                              SpeechEngine.sarvam =>
-                                'Much stronger on Indian languages. Needs internet and your own API key; bills per use.',
+                              SpeechEngine.googleCloud =>
+                                'Broad language coverage. Needs internet and your own API key; bills per use.',
                               SpeechEngine.whisper =>
                                 'Free and works offline once its model is downloaded. Generally more accurate than '
                                     'the on-device engine, especially with accents.',
@@ -284,9 +284,9 @@ class SettingsScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    if (settings.speechEngine == SpeechEngine.sarvam) ...[
+                    if (settings.speechEngine == SpeechEngine.googleCloud) ...[
                       const Divider(height: 1),
-                      SarvamSpeechSettings(apiKey: settings.sarvamApiKey),
+                      GoogleSpeechSettings(apiKey: settings.googleSpeechApiKey),
                     ],
                     if (settings.speechEngine == SpeechEngine.whisper) ...[
                       const Divider(height: 1),

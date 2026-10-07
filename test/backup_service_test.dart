@@ -25,19 +25,19 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({
-      PrefsKeys.settings: jsonEncode({'sarvamApiKey': 'super-secret-key', 'hapticFeedback': false}),
+      PrefsKeys.settings: jsonEncode({'googleSpeechApiKey': 'super-secret-key', 'hapticFeedback': false}),
       PrefsKeys.history: jsonEncode([]),
     });
     final prefs = await SharedPreferences.getInstance();
     service = BackupService(prefs);
   });
 
-  test('exportToFile never includes the Sarvam API key', () async {
+  test('exportToFile never includes the Google Cloud API key', () async {
     final file = await service.exportToFile();
     final payload = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     final settings = jsonDecode(payload['data']['settings'] as String) as Map<String, dynamic>;
 
-    expect(settings.containsKey('sarvamApiKey'), isFalse);
+    expect(settings.containsKey('googleSpeechApiKey'), isFalse);
     expect(settings['hapticFeedback'], false);
   });
 
@@ -50,7 +50,7 @@ void main() {
     await freshService.importFromFile(file);
 
     final settings = jsonDecode(freshPrefs.getString(PrefsKeys.settings)!) as Map<String, dynamic>;
-    expect(settings.containsKey('sarvamApiKey'), isFalse);
+    expect(settings.containsKey('googleSpeechApiKey'), isFalse);
     expect(settings['hapticFeedback'], false);
   });
 

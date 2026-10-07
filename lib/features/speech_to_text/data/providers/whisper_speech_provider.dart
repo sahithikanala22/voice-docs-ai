@@ -23,7 +23,7 @@ const whisperSpeechModel = WhisperModel.base;
 /// download and more CPU/battery per recording than the lightweight OS
 /// engine.
 ///
-/// Unlike the Sarvam provider, this genuinely streams: the model
+/// Unlike the Google Cloud provider, this genuinely streams: the model
 /// stays loaded for the session and [startWhisperLiveSession]
 /// emits progressively-refined partial transcripts while you talk, so live
 /// captions work the same way they do for the on-device engine — no

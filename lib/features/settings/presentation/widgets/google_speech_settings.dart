@@ -5,21 +5,21 @@ import 'package:ai_voice_docs/core/config/app_env.dart';
 
 import '../providers/settings_providers.dart';
 
-/// API key entry for the Sarvam AI speech engine — its own small stateful
+/// API key entry for the Google Cloud speech engine — its own small stateful
 /// widget (rather than inline in [SettingsScreen]) so the
 /// [TextEditingController] survives the parent rebuilding on every settings
 /// change without losing cursor position or getting fed a "controller and
 /// value changed" assertion.
-class SarvamSpeechSettings extends ConsumerStatefulWidget {
-  const SarvamSpeechSettings({super.key, required this.apiKey});
+class GoogleSpeechSettings extends ConsumerStatefulWidget {
+  const GoogleSpeechSettings({super.key, required this.apiKey});
 
   final String? apiKey;
 
   @override
-  ConsumerState<SarvamSpeechSettings> createState() => _SarvamSpeechSettingsState();
+  ConsumerState<GoogleSpeechSettings> createState() => _GoogleSpeechSettingsState();
 }
 
-class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
+class _GoogleSpeechSettingsState extends ConsumerState<GoogleSpeechSettings> {
   late final TextEditingController _controller = TextEditingController(text: widget.apiKey);
   bool _obscure = true;
 
@@ -32,7 +32,7 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final hasBundledKey = AppEnv.sarvamApiKey.isNotEmpty;
+    final hasBundledKey = AppEnv.googleSpeechApiKey.isNotEmpty;
     final usingBundledKey = hasBundledKey && (widget.apiKey?.trim().isEmpty ?? true);
 
     return Padding(
@@ -62,7 +62,7 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
             controller: _controller,
             obscureText: _obscure,
             decoration: InputDecoration(
-              labelText: 'Sarvam AI API key',
+              labelText: 'Google Cloud API key',
               hintText: usingBundledKey ? 'Leave blank to use the .env key' : null,
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
@@ -78,15 +78,15 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
             hasBundledKey
                 ? 'A key here overrides the one in .env, so you can swap keys without rebuilding. '
                       'Clear the field to go back to the .env key.'
-                : 'From dashboard.sarvam.ai: sign in and copy your API subscription key. Stored only '
-                      'on this device — never sent anywhere except Sarvam\'s API.',
+                : 'From console.cloud.google.com: create a project, enable billing, enable the '
+                      '"Cloud Speech-to-Text API", then create an API key under Credentials. Stored '
+                      'only on this device — never sent anywhere except Google\'s API.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Text(
-            'Uses Sarvam\'s saaras:v4 model — built for Indian languages, and handles English too. '
-            'Other languages fall back to auto-detect and may transcribe poorly; use the on-device '
-            'engine for those.',
+            'Broad language coverage, not limited to any one region — takes whatever language '
+            'you pick directly, no translation needed. Bills per use once past the free monthly tier.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
@@ -105,6 +105,6 @@ class _SarvamSpeechSettingsState extends ConsumerState<SarvamSpeechSettings> {
 
   void _save() {
     final value = _controller.text.trim();
-    ref.read(settingsControllerProvider.notifier).setSarvamApiKey(value.isEmpty ? null : value);
+    ref.read(settingsControllerProvider.notifier).setGoogleSpeechApiKey(value.isEmpty ? null : value);
   }
 }

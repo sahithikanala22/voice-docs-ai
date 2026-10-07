@@ -5,8 +5,8 @@ import 'package:ai_voice_docs/core/config/app_env.dart';
 import 'package:ai_voice_docs/features/settings/domain/app_settings.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 
+import '../../data/providers/google_speech_provider.dart';
 import '../../data/providers/on_device_speech_provider.dart';
-import '../../data/providers/sarvam_speech_provider.dart';
 import '../../data/providers/speech_provider.dart';
 import '../../data/providers/whisper_speech_provider.dart';
 import '../../data/repositories/speech_repository_impl.dart';
@@ -16,8 +16,8 @@ import '../../domain/speech_repository.dart';
 
 /// Picks the active [SpeechProvider] from Settings' `speechEngine` choice:
 /// [SpeechEngine.onDevice] (default, free, offline, uses the phone's own
-/// recognizer), [SpeechEngine.sarvam] (needs an API key, upload-and-wait —
-/// see [SarvamSpeechProvider]'s doc comment), or [SpeechEngine.whisper]
+/// recognizer), [SpeechEngine.googleCloud] (needs an API key, upload-and-wait
+/// — see [GoogleSpeechProvider]'s doc comment), or [SpeechEngine.whisper]
 /// (free, offline, on-device Whisper — needs its model downloaded once).
 ///
 /// A Vosk-backed hybrid provider (`vosk_flutter_service`; offline, reliable
@@ -34,18 +34,18 @@ import '../../domain/speech_repository.dart';
 final speechProviderImplProvider = Provider<SpeechProvider>((ref) {
   final settings = ref.watch(settingsControllerProvider).value;
   return switch (settings?.speechEngine) {
-    SpeechEngine.sarvam => SarvamSpeechProvider(apiKey: sarvamApiKey(settings)),
+    SpeechEngine.googleCloud => GoogleSpeechProvider(apiKey: googleSpeechApiKey(settings)),
     SpeechEngine.whisper => WhisperSpeechProvider(),
     SpeechEngine.onDevice || null => OnDeviceSpeechProvider(),
   };
 });
 
-/// The Sarvam key actually in force: whatever was typed in Settings, else
-/// the one bundled in `.env`. Settings wins so a key can be swapped on the
-/// device without a rebuild.
-String sarvamApiKey(AppSettings? settings) {
-  final fromSettings = settings?.sarvamApiKey?.trim() ?? '';
-  return fromSettings.isNotEmpty ? fromSettings : AppEnv.sarvamApiKey;
+/// The Google Cloud key actually in force: whatever was typed in Settings,
+/// else the one bundled in `.env`. Settings wins so a key can be swapped on
+/// the device without a rebuild.
+String googleSpeechApiKey(AppSettings? settings) {
+  final fromSettings = settings?.googleSpeechApiKey?.trim() ?? '';
+  return fromSettings.isNotEmpty ? fromSettings : AppEnv.googleSpeechApiKey;
 }
 
 final speechRepositoryProvider = Provider<SpeechRepository>((ref) {

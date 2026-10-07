@@ -18,14 +18,14 @@ abstract final class AppEnv {
       // leaves it uninitialized, and every getter below — including
       // maybeGet, despite the name — throws NotInitializedError against an
       // uninitialized DotEnv rather than returning null. Explicitly
-      // initialize it empty so [sarvamApiKey] actually falls back to ''
-      // as documented, instead of crashing the first screen that reads it
-      // (Settings' Sarvam panel).
+      // initialize it empty so [googleSpeechApiKey] actually falls back to
+      // '' as documented, instead of crashing the first screen that reads it
+      // (Settings' Google Cloud panel).
       dotenv.loadFromString(envString: '', isOptional: true);
     }
   }
 
-  /// Default Sarvam AI key. A key entered in Settings takes precedence over
-  /// this one; see `speechProviderImplProvider`.
-  static String get sarvamApiKey => dotenv.maybeGet('SARVAM_API_KEY')?.trim() ?? '';
+  /// Default Google Cloud Speech-to-Text key. A key entered in Settings
+  /// takes precedence over this one; see `speechProviderImplProvider`.
+  static String get googleSpeechApiKey => dotenv.maybeGet('GOOGLE_SPEECH_API_KEY')?.trim() ?? '';
 }

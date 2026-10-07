@@ -11,7 +11,7 @@ import 'package:ai_voice_docs/features/speech_to_text/data/providers/whisper_spe
 /// it be fetched ahead of time — with no API key to enter, this is the only
 /// setup this engine needs. Downloading here means the first real recording
 /// doesn't stall on a ~140MB fetch. Also offers Whisper's language
-/// auto-detection, since its model (unlike the on-device/Sarvam engines)
+/// auto-detection, since its model (unlike the on-device/Google Cloud engines)
 /// genuinely supports transcribing whatever language is spoken without
 /// being told in advance.
 class WhisperSpeechSettings extends ConsumerStatefulWidget {

@@ -28,11 +28,11 @@ abstract class AppSettings with _$AppSettings {
     @JsonKey(unknownEnumValue: SpeechEngine.onDevice)
     @Default(SpeechEngine.onDevice)
     SpeechEngine speechEngine,
-    /// User-supplied Sarvam AI API key, only used when [speechEngine] is
-    /// [SpeechEngine.sarvam]. Stored locally (SharedPreferences) only —
+    /// User-supplied Google Cloud API key, only used when [speechEngine] is
+    /// [SpeechEngine.googleCloud]. Stored locally (SharedPreferences) only —
     /// never bundled in the app or committed to source, so it can't leak via
     /// the APK or the repo.
-    String? sarvamApiKey,
+    String? googleSpeechApiKey,
     /// When [speechEngine] is [SpeechEngine.whisper], transcribe in whatever
     /// language is actually spoken instead of forcing the app's selected
     /// language — Whisper's own model supports this natively. Off by
