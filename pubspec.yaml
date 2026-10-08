@@ -91,8 +91,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/icon.png
-    # `.env` (holding SARVAM_API_KEY) is deliberately NOT bundled here. A
-    # bundled key gets shipped as a plain, extractable asset inside every
-    # install — fine for a personal build kept off a store, but not once the
-    # app is publicly distributed (Play Store). AppEnv.sarvamApiKey now
-    # always resolves empty; users supply their own key in Settings.
+    # `.env` (holding GOOGLE_SPEECH_API_KEY) is deliberately NOT bundled
+    # here. A bundled key gets shipped as a plain, extractable asset inside
+    # every install — fine for a personal build kept off a store, but not
+    # once the app is publicly distributed (Play Store).
+    # AppEnv.googleSpeechApiKey now always resolves empty; users supply
+    # their own key in Settings.

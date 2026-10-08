@@ -39,7 +39,7 @@ migrate_working_dir/
 /android/build/
 /coverage/
 
-# Secrets — .env holds the Sarvam API key and must never be committed.
+# Secrets — .env holds the Google Cloud API key and must never be committed.
 # .env.example documents the keys without their values.
 .env
 .env.*
