@@ -1,0 +1,31 @@
+App name:
+Voice Docs AI
+
+Short description:
+Turn voice into notes. Keep a diary, calendar entries, tasks and history.
+
+Full description:
+Capture a thought while it is fresh. Voice Docs AI turns your spoken words into text you can review, edit and keep.
+
+VOICE NOTES
+Tap record, speak and stop. Review your transcript and revisit saved notes in History. Choose your speech language and organize entries in folders.
+
+YOUR PERSONAL DIARY
+Write or dictate a diary entry, choose its date and mood, and add optional photos. Return to your reflections whenever you want.
+
+CALENDAR AND TASKS
+Browse notes by date, including earlier days. Open a past date to add an entry. Create tasks and optional reminders alongside your notes.
+
+MAKE IT YOURS
+Choose Dark, Light or System appearance, reading styles and your device's available read-aloud voices.
+
+LOCAL STORAGE AND CONTROL
+Your entries stay in this app's private device storage unless you explicitly share or export them. A local PIN protects access; supported devices can also use biometrics. Export a backup or delete your local app data from Settings.
+
+SPEECH OPTIONS
+Device speech uses your phone's recognition service; offline support and accuracy depend on your device and installed languages. Optional Google Cloud transcription uploads recordings to Google, requires your own API key and internet, and may incur usage charges. Cloud recordings are limited to 50 seconds per capture. Retained Cloud audio can be retried or deleted from Settings.
+
+Important: review transcripts before relying on them. Speech recognition can miss or misunderstand words. Reminder timing depends on device permissions and battery settings.
+
+Support and privacy:
+Use the verified developer support email and public privacy policy URL configured in release/identity.json.

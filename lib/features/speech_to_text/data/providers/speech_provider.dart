@@ -1,7 +1,7 @@
 /// Modular extension point for speech recognition backends.
 ///
 /// The app ships [OnDeviceSpeechProvider] (native OS speech recognizer, free,
-/// offline, wired by default). To switch to a paid cloud engine, implement
+/// whose offline availability depends on the device, wired by default). To switch to a paid cloud engine, implement
 /// this interface (see `cloud_speech_provider_stub.dart`) and override
 /// `speechProviderImplProvider` in `speech_providers.dart` — nothing else in
 /// the app needs to change, since [SpeechRepositoryImpl] only depends on this

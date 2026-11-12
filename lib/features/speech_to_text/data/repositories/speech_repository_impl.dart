@@ -1,10 +1,50 @@
 import '../../domain/speech_repository.dart';
 import '../providers/speech_provider.dart';
+import '../../domain/recording_phase.dart';
 
-class SpeechRepositoryImpl implements SpeechRepository {
+class SpeechRepositoryImpl
+    implements
+        SpeechRepository,
+        SavedRecordingAcknowledgement,
+        RecordingStatusSource,
+        RecordingContextSink,
+        CancelableTranscription {
   SpeechRepositoryImpl(this._provider);
 
   final SpeechProvider _provider;
+  @override
+  void cancelTranscription() {
+    if (_provider is CancelableTranscription) {
+      (_provider as CancelableTranscription).cancelTranscription();
+    }
+  }
+
+  @override
+  Stream<RecordingProgress> get recordingProgress =>
+      _provider is RecordingStatusSource
+      ? (_provider as RecordingStatusSource).recordingProgress
+      : const Stream.empty();
+  @override
+  String? get recordingId => _provider is RecordingStatusSource
+      ? (_provider as RecordingStatusSource).recordingId
+      : null;
+  @override
+  void setRecordingContext({DateTime? entryDate, String? folderId}) {
+    if (_provider is RecordingContextSink) {
+      (_provider as RecordingContextSink).setRecordingContext(
+        entryDate: entryDate,
+        folderId: folderId,
+      );
+    }
+  }
+
+  @override
+  Future<void> confirmSaved() async {
+    final provider = _provider;
+    if (provider is SavedRecordingAcknowledgement) {
+      await (provider as SavedRecordingAcknowledgement).confirmSaved();
+    }
+  }
 
   @override
   Future<bool> initialize() => _provider.initialize();

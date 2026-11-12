@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const Color _seed = Color(0xFF5B67F1);
+  static const Color _seed = Color(0xFF6242C6);
 
   /// The logo's radiating sound-wave burst, cyan through orange — used for
   /// decorative accents (e.g. the mic button's pulse rings) that should echo
@@ -82,7 +82,7 @@ class AppTheme {
     return LinearGradient(
       begin: begin,
       end: end,
-      colors: [scheme.primary, scheme.tertiary],
+      colors: [scheme.primary, scheme.primary],
     );
   }
 
@@ -109,11 +109,7 @@ class AppTheme {
     Color? seedColor,
     String? fontFamily,
   }) => _base(
-    dynamicScheme ??
-        ColorScheme.fromSeed(
-          seedColor: seedColor ?? _seed,
-          brightness: Brightness.light,
-        ),
+    dynamicScheme ?? _brandScheme(Brightness.light, seedColor),
     fontFamily: fontFamily,
   );
 
@@ -122,15 +118,46 @@ class AppTheme {
     Color? seedColor,
     String? fontFamily,
   }) => _base(
-    dynamicScheme ??
-        ColorScheme.fromSeed(
-          seedColor: seedColor ?? _seed,
-          brightness: Brightness.dark,
-        ),
+    dynamicScheme ?? _brandScheme(Brightness.dark, seedColor),
     fontFamily: fontFamily,
   );
 
+  static ColorScheme _brandScheme(Brightness brightness, Color? accent) {
+    final dark = brightness == Brightness.dark;
+    final generated = ColorScheme.fromSeed(
+      seedColor: accent ?? _seed,
+      brightness: brightness,
+    );
+    return generated.copyWith(
+      primary: accent == null
+          ? (dark ? const Color(0xFFA794FF) : _seed)
+          : generated.primary,
+      onPrimary: accent == null
+          ? (dark ? const Color(0xFF17112D) : Colors.white)
+          : generated.onPrimary,
+      surface: dark ? const Color(0xFF0A0E18) : const Color(0xFFFAFBFD),
+      surfaceContainerLowest: dark ? const Color(0xFF080A12) : Colors.white,
+      surfaceContainerLow: dark ? const Color(0xFF141C2B) : Colors.white,
+      surfaceContainer: dark
+          ? const Color(0xFF172033)
+          : const Color(0xFFF1F3F9),
+      surfaceContainerHigh: dark
+          ? const Color(0xFF1C2538)
+          : const Color(0xFFF4F5FA),
+      surfaceContainerHighest: dark
+          ? const Color(0xFF263148)
+          : const Color(0xFFEAEDF5),
+      onSurface: dark ? const Color(0xFFF4F6FC) : const Color(0xFF172033),
+      onSurfaceVariant: dark
+          ? const Color(0xFFB5BED1)
+          : const Color(0xFF566176),
+      outline: dark ? const Color(0xFF66738D) : const Color(0xFF788398),
+      outlineVariant: dark ? const Color(0xFF2B3850) : const Color(0xFFE1E5EF),
+    );
+  }
+
   static ThemeData _base(ColorScheme scheme, {String? fontFamily}) {
+    fontFamily ??= 'Roboto';
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -139,7 +166,7 @@ class AppTheme {
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
-        surfaceTintColor: scheme.surfaceTint,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
@@ -152,17 +179,21 @@ class AppTheme {
       ),
       textTheme: _textTheme(scheme, fontFamily: fontFamily),
       cardTheme: CardThemeData(
-        elevation: 3,
+        elevation: 0,
         shadowColor: scheme.primary.withValues(alpha: 0.25),
         surfaceTintColor: Colors.transparent,
-        color: scheme.surfaceContainerHigh,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        color: scheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .65)),
+        ),
         clipBehavior: Clip.antiAlias,
       ),
       chipTheme: ChipThemeData(
         backgroundColor: scheme.surfaceContainerHigh,
         selectedColor: scheme.primaryContainer,
         labelStyle: TextStyle(
+          fontFamily: fontFamily,
           color: scheme.onSurface,
           fontWeight: FontWeight.w600,
         ),
@@ -175,7 +206,11 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          textStyle: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            fontFamily: fontFamily,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -200,15 +235,15 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: scheme.surfaceContainer,
-        indicatorColor: scheme.primary,
+        indicatorColor: scheme.primaryContainer,
         surfaceTintColor: Colors.transparent,
         shadowColor: scheme.primary.withValues(alpha: 0.3),
-        elevation: 8,
-        height: 68,
+        elevation: 0,
+        height: 76,
         iconTheme: WidgetStateProperty.resolveWith(
           (states) => IconThemeData(
             color: states.contains(WidgetState.selected)
-                ? scheme.onPrimary
+                ? scheme.onPrimaryContainer
                 : scheme.onSurfaceVariant,
           ),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,7 +14,7 @@ import 'package:ai_voice_docs/features/tasks/presentation/providers/task_provide
 
 import '../providers/app_lock_providers.dart';
 
-/// First-launch screen: pick a name and a 4-digit PIN. Purely local — there
+/// First-launch screen: pick a name and a 6-digit PIN. Purely local — there
 /// is no way to recover a forgotten PIN itself, since nothing here is
 /// verified against a server, but this screen also doubles as the "welcome
 /// back" step after a reset: if a pre-reset data snapshot is sitting on
@@ -55,6 +56,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    TextButton(
+                      onPressed: () => context.push('/privacy'),
+                      child: const Text('Privacy policy'),
+                    ),
                     Icon(
                       Icons.lock_person_outlined,
                       size: 56,
@@ -94,15 +99,15 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       keyboardType: TextInputType.number,
                       obscureText: true,
                       textAlign: TextAlign.center,
-                      maxLength: 4,
+                      maxLength: 6,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       style: Theme.of(context).textTheme.headlineSmall,
                       decoration: const InputDecoration(
-                        labelText: '4-digit PIN',
+                        labelText: '6-digit PIN',
                         counterText: '',
                       ),
-                      validator: (value) => (value == null || value.length != 4)
-                          ? 'Enter a 4-digit PIN'
+                      validator: (value) => (value == null || value.length != 6)
+                          ? 'Enter a 6-digit PIN'
                           : null,
                     ),
                     const SizedBox(height: 16),
@@ -111,7 +116,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                       keyboardType: TextInputType.number,
                       obscureText: true,
                       textAlign: TextAlign.center,
-                      maxLength: 4,
+                      maxLength: 6,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       style: Theme.of(context).textTheme.headlineSmall,
                       decoration: const InputDecoration(

@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,7 @@ void main() {
   testWidgets('App launches on the voice-to-text home tab with bottom nav', (
     tester,
   ) async {
+    FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
 
@@ -56,10 +58,32 @@ void main() {
 
     // "Today" also appears on the new date-selector chip, so target the
     // app bar's title specifically rather than asserting there's only one.
-    expect(find.widgetWithText(AppBar, 'Today'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, 'Voice Docs AI'), findsOneWidget);
     expect(find.text('Voice'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
-    expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Tap the mic to start speaking'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
+    expect(find.widgetWithText(NavigationDestination, 'Diary'), findsOneWidget);
+    expect(find.text('Tap to record'), findsOneWidget);
+  });
+  testWidgets('unreadable protected account fails closed', (tester) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'voxi.app_lock_account.v1': '{"encrypted":1,"nonce":"invalid"}',
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+        child: const AiVoiceDocsApp(),
+      ),
+    );
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(
+      find.text('Protected data could not be opened. Your app remains locked.'),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(AppBar, 'Voice Docs AI'), findsNothing);
   });
 }

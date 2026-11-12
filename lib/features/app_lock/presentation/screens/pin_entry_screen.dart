@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ai_voice_docs/features/diary/presentation/providers/diary_providers.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,6 +30,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
   /// not on every rebuild (`build()` re-runs a lot from `ref.watch`) — the
   /// button below still lets the user retry biometrics manually any time.
   bool _biometricAutoPromptSent = false;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -92,11 +94,12 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                   ),
                   const SizedBox(height: 32),
                   TextField(
+                    enabled: !_submitting,
                     controller: _pinController,
                     keyboardType: TextInputType.number,
                     obscureText: true,
                     textAlign: TextAlign.center,
-                    maxLength: 4,
+                    maxLength: 6,
                     autofocus: true,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: Theme.of(context).textTheme.headlineSmall,
@@ -107,18 +110,38 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
                     onSubmitted: (_) => _submit(),
                   ),
                   const SizedBox(height: 16),
-                  FilledButton(onPressed: _submit, child: const Text('Unlock')),
+                  FilledButton(
+                    onPressed: _submitting ? null : _submit,
+                    child: _submitting
+                        ? const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text('Unlocking…'),
+                            ],
+                          )
+                        : const Text('Unlock'),
+                  ),
                   if (biometricEnabled) ...[
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
-                      onPressed: _tryBiometricUnlock,
+                      onPressed: _submitting ? null : _tryBiometricUnlock,
                       icon: const Icon(Icons.fingerprint_rounded),
                       label: const Text('Unlock with biometrics'),
                     ),
                   ],
                   const SizedBox(height: 8),
                   TextButton(
-                    onPressed: () => _confirmReset(context),
+                    onPressed: _submitting
+                        ? null
+                        : () => _confirmReset(context),
                     child: const Text('Forgot PIN?'),
                   ),
                 ],
@@ -130,16 +153,31 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
     );
   }
 
-  void _submit() {
-    if (_pinController.text.length != 4) return;
-    ref.read(appLockControllerProvider.notifier).unlock(_pinController.text);
+  Future<void> _submit() async {
+    if (_submitting) return;
+    if (_pinController.text.length != 4 && _pinController.text.length != 6) {
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await ref
+          .read(appLockControllerProvider.notifier)
+          .unlock(_pinController.text);
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          'Could not verify your PIN. Please try again.',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   Future<void> _tryBiometricUnlock() async {
-    final success = await ref.read(biometricAuthServiceProvider).authenticate();
-    if (success && mounted) {
-      ref.read(appLockControllerProvider.notifier).unlockWithBiometrics();
-    }
+    await ref.read(appLockControllerProvider.notifier).unlockWithBiometrics();
   }
 
   Future<void> _confirmReset(BuildContext context) async {
@@ -148,10 +186,7 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Reset app data?'),
         content: const Text(
-          'There\'s no way to recover a forgotten PIN — it\'s never sent anywhere to verify '
-          'against. Resetting requires setting up a new PIN, and your name/profile will need '
-          're-entering, but your history, tasks, and folders will be restored automatically '
-          'right after you do.',
+          'Verify your device passcode or biometrics to set a new app PIN. Your history, tasks and folders will be preserved. Without device verification, existing data stays locked.',
         ),
         actions: [
           TextButton(
@@ -169,12 +204,17 @@ class _PinEntryScreenState extends ConsumerState<PinEntryScreen> {
       ),
     );
     if (confirmed == true) {
+      final verified = await ref
+          .read(biometricAuthServiceProvider)
+          .authenticateRecovery();
+      if (!verified || !context.mounted) return;
       // Snapshot everything to a file first — SharedPreferences.clear()
       // below only empties the prefs store, so this survives the wipe and
       // lets SignupScreen hand it all back once a new PIN is set up.
       await ref.read(backupServiceProvider).saveAutoBackupBeforeReset();
       await ref.read(sharedPreferencesProvider).clear();
       ref.invalidate(historyControllerProvider);
+      ref.invalidate(diaryControllerProvider);
       ref.invalidate(folderControllerProvider);
       ref.invalidate(settingsControllerProvider);
       ref.invalidate(appLockControllerProvider);

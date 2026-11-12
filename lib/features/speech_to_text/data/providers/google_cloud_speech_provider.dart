@@ -1,182 +1,183 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
+import 'durable_recording_provider.dart';
+import '../pending_recording_store.dart';
+import '../../domain/recording_phase.dart';
 
-import 'speech_provider.dart';
-
-/// [SpeechProvider] backed by Google Cloud Speech-to-Text's *batch* REST
-/// endpoint (`speech:recognize`) — chosen over the streaming API because
-/// streaming needs OAuth/service-account credentials that can't safely ship
-/// in a client app, while a plain API key (restricted to this app's
-/// signing certificate in Google Cloud Console) is safe to embed and works
-/// fine with the batch endpoint.
-///
-/// Practical effect: no live partial captions — [onResult] fires once,
-/// with the full transcript, right after [stopListening] uploads the
-/// recording and gets a response back. Requires an internet connection and
-/// a user-supplied API key (Settings); bills per use past Google's free
-/// tier.
-class GoogleCloudSpeechProvider implements SpeechProvider {
-  GoogleCloudSpeechProvider({required this.apiKey, Dio? dio})
-    : _dio = dio ?? Dio();
-
-  static const _sampleRate = 16000;
-  static const _endpoint = 'https://speech.googleapis.com/v1/speech:recognize';
-
+class GoogleCloudSpeechProvider extends DurableRecordingProvider {
+  GoogleCloudSpeechProvider({
+    required this.apiKey,
+    Dio? dio,
+    super.recoveryStore,
+    super.recorder,
+    super.transcribeOnStop,
+    Future<void> Function(Duration)? delay,
+  }) : _delay = delay ?? Future<void>.delayed,
+       _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               connectTimeout: const Duration(seconds: 15),
+               sendTimeout: const Duration(seconds: 30),
+               receiveTimeout: const Duration(seconds: 45),
+             ),
+           );
   final String apiKey;
   final Dio _dio;
-  final AudioRecorder _recorder = AudioRecorder();
-
-  StreamSubscription<Amplitude>? _amplitudeSubscription;
-  void Function(String transcript, bool isFinal)? _currentOnResult;
-  void Function(String message)? _currentOnError;
-  String _currentLocaleCode = 'en-US';
-  bool _isListening = false;
+  final Future<void> Function(Duration) _delay;
+  static const bytesPerSecond = 32000;
+  static const chunkBytes = 50 * bytesPerSecond;
+  static const overlapBytes = 2 * bytesPerSecond;
+  @override
+  Future<void> validateStart() async {
+    if (transcribeOnStop && apiKey.trim().isEmpty) {
+      throw StateError(
+        'Add a Google Cloud API key in Settings, or use Record meeting to save audio offline.',
+      );
+    }
+  }
 
   @override
-  Future<bool> initialize() async => true;
-
+  String get transcriptionFailureMessage =>
+      'Transcription failed. Audio is kept in Recover recordings. Check your connection, API key and device storage.';
   @override
-  Future<void> startListening({
-    required String localeCode,
-    required void Function(String transcript, bool isFinal) onResult,
-    void Function(double level)? onSoundLevel,
-    required void Function(String message) onError,
+  Future<String> transcribeRetained(
+    PendingRecording recording, {
+    bool resetCancellation = true,
   }) async {
-    _currentOnResult = onResult;
-    _currentOnError = onError;
-    _currentLocaleCode = localeCode;
-
-    if (apiKey.trim().isEmpty) {
-      onError(
-        'Add a Google Cloud API key in Settings to use this speech engine.',
-      );
-      return;
+    final store = await recovery;
+    if (!await store.acquireJob(recording.id)) {
+      throw StateError('This recording is already being transcribed.');
     }
-
-    final granted = await _recorder.hasPermission();
-    if (!granted) {
-      onError('Microphone permission is required to use voice input.');
-      return;
-    }
-
+    if (resetCancellation) cancellation = CancelToken();
+    final token = cancellation;
     try {
-      final dir = await getTemporaryDirectory();
-      final path =
-          '${dir.path}/gcloud_stt_${DateTime.now().microsecondsSinceEpoch}.pcm';
-      await _recorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.pcm16bits,
-          sampleRate: _sampleRate,
-          numChannels: 1,
-        ),
-        path: path,
-      );
-      _isListening = true;
-
-      if (onSoundLevel != null) {
-        _amplitudeSubscription = _recorder
-            .onAmplitudeChanged(const Duration(milliseconds: 150))
-            .listen((amplitude) {
-              // amplitude.current is dBFS, roughly -50 (near-silence)..0
-              // (loudest) in practice — remap to the 0..10 scale the rest of
-              // the app's mic-pulse animation expects.
-              onSoundLevel(((amplitude.current + 50) / 5).clamp(0.0, 10.0));
-            });
+      await store.selectTranscriptionBackend(recording.id, 'googleCloud');
+      var item = await store.get(
+        recording.id,
+      ); // Locale and ID always come from durable metadata.
+      if (item.phase == RecordingPhase.completed &&
+          item.transcript.isNotEmpty) {
+        return item.transcript;
       }
-    } catch (e) {
-      _isListening = false;
-      onError('Could not start recording: $e');
-    }
-  }
-
-  @override
-  Future<void> stopListening() async {
-    if (!_isListening) return;
-    _isListening = false;
-    await _amplitudeSubscription?.cancel();
-
-    final path = await _recorder.stop();
-    if (path == null) {
-      _currentOnResult?.call('', true);
-      return;
-    }
-    await _transcribe(path);
-  }
-
-  @override
-  Future<void> cancel() async {
-    _isListening = false;
-    await _amplitudeSubscription?.cancel();
-    await _recorder.cancel();
-  }
-
-  @override
-  bool get isListening => _isListening;
-
-  Future<void> _transcribe(String path) async {
-    final file = File(path);
-    try {
-      final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) {
-        _currentOnResult?.call('', true);
-        return;
+      if (apiKey.trim().isEmpty) {
+        throw StateError(
+          'Add a Google Cloud API key in Settings before retrying.',
+        );
       }
-
-      Map<String, dynamic> data;
-      try {
-        // "latest_long" is Google's conversational model — tuned for
-        // natural speech with pauses instead of the short, clipped
-        // commands the default model expects — and diarization tags each
-        // word with a speaker so a multi-person recording doesn't come
-        // back as one run-on transcript.
-        data = await _recognize(bytes, enhanced: true);
-      } on DioException catch (e) {
-        // Not every language supports the long model or diarization; fall
-        // back to the plain config rather than losing the recording.
-        if (e.response?.statusCode == 400) {
-          data = await _recognize(bytes, enhanced: false);
-        } else {
-          rethrow;
+      if (item.locale == 'und') {
+        throw StateError(
+          'Select the original recording language before retrying.',
+        );
+      }
+      if (item.byteLength == 0) {
+        throw StateError('No audio bytes are available for transcription.');
+      }
+      await store.sealCapture(item.id);
+      await store.setPhase(item.id, RecordingPhase.transcribing);
+      emitProgress(RecordingPhase.transcribing, saved: true);
+      final count = (item.byteLength / chunkBytes).ceil();
+      for (var index = 0; index < count; index++) {
+        _checkCancelled(token);
+        if (item.chunks.containsKey(index) &&
+            !(resetCancellation && item.chunks[index]!.isEmpty)) {
+          continue;
         }
+        final coreStart = index * chunkBytes;
+        final coreEnd = min(coreStart + chunkBytes, item.byteLength);
+        final start = max(0, coreStart - overlapBytes);
+        final end = min(item.byteLength, coreEnd + overlapBytes);
+        final bytes = await store.readAudio(item.id, start, end - start);
+        final data = await _recognizeWithRetry(bytes, item.locale, token);
+        _checkCancelled(token);
+        final text = extractChunk(
+          data,
+          requestStart: start / bytesPerSecond,
+          coreStart: coreStart / bytesPerSecond,
+          coreEnd: coreEnd / bytesPerSecond,
+          previous: item.transcript,
+          segment: index + 1,
+        );
+        await store.saveChunk(item.id, index, text);
+        item = await store.get(item.id);
       }
-
-      _currentOnResult?.call(_extractTranscript(data), true);
-    } on DioException catch (e) {
-      String? apiMessage;
-      final responseData = e.response?.data;
-      if (responseData is Map) {
-        final error = responseData['error'];
-        if (error is Map) apiMessage = error['message'] as String?;
+      if (item.transcript.trim().isEmpty) {
+        throw StateError(
+          'No speech was recognized. Audio is kept in Recover recordings for playback or export.',
+        );
       }
-      _currentOnError?.call(
-        apiMessage ?? 'Google Cloud speech recognition failed: ${e.message}',
-      );
-    } catch (e) {
-      _currentOnError?.call('Could not transcribe the recording: $e');
+      await store.saveTranscript(item.id, item.transcript);
+      emitProgress(RecordingPhase.completed, saved: true);
+      return item.transcript;
+    } catch (error) {
+      try {
+        await store.setPhase(
+          recording.id,
+          token.isCancelled
+              ? RecordingPhase.interrupted
+              : RecordingPhase.failed,
+          error: error is StateError
+              ? error.message.toString()
+              : 'Transcription failed; completed chunks and audio are kept.',
+        );
+      } catch (_) {}
+      rethrow;
     } finally {
-      unawaited(
-        file.exists().then((exists) async {
-          if (exists) await file.delete();
-        }),
-      );
+      await store.releaseJob(recording.id);
+    }
+  }
+
+  void _checkCancelled(CancelToken token) {
+    if (token.isCancelled) throw token.cancelError!;
+  }
+
+  Future<Map<String, dynamic>> _recognizeWithRetry(
+    Uint8List bytes,
+    String locale,
+    CancelToken token,
+  ) async {
+    for (var attempt = 0; ; attempt++) {
+      _checkCancelled(token);
+      try {
+        try {
+          return await _recognize(bytes, locale, token, enhanced: true);
+        } on DioException catch (error) {
+          if (error.response?.statusCode != 400) rethrow;
+          return await _recognize(bytes, locale, token, enhanced: false);
+        }
+      } on DioException catch (error) {
+        final status = error.response?.statusCode;
+        final transient =
+            {408, 429, 500, 502, 503, 504}.contains(status) ||
+            {
+              DioExceptionType.connectionError,
+              DioExceptionType.connectionTimeout,
+              DioExceptionType.sendTimeout,
+              DioExceptionType.receiveTimeout,
+            }.contains(error.type);
+        if (!transient || attempt >= 2 || token.isCancelled) rethrow;
+        await Future.any([
+          _delay(Duration(milliseconds: 500 * (1 << attempt))),
+          token.whenCancel,
+        ]);
+      }
     }
   }
 
   Future<Map<String, dynamic>> _recognize(
-    Uint8List bytes, {
+    Uint8List bytes,
+    String locale,
+    CancelToken token, {
     required bool enhanced,
   }) async {
     final config = <String, dynamic>{
       'encoding': 'LINEAR16',
-      'sampleRateHertz': _sampleRate,
-      'languageCode': _currentLocaleCode,
+      'sampleRateHertz': 16000,
+      'languageCode': locale,
       'enableAutomaticPunctuation': true,
+      'enableWordTimeOffsets': true,
     };
     if (enhanced) {
       config['model'] = 'latest_long';
@@ -186,9 +187,9 @@ class GoogleCloudSpeechProvider implements SpeechProvider {
         'maxSpeakerCount': 6,
       };
     }
-
     final response = await _dio.post<Map<String, dynamic>>(
-      _endpoint,
+      'https://speech.googleapis.com/v1/speech:recognize',
+      cancelToken: token,
       queryParameters: {'key': apiKey},
       data: {
         'config': config,
@@ -198,58 +199,80 @@ class GoogleCloudSpeechProvider implements SpeechProvider {
     return response.data ?? const {};
   }
 
-  /// Plain concatenation of each segment's transcript in the common case.
-  /// When diarization found more than one speaker, Google appends one
-  /// extra result whose first alternative carries word-level speaker tags
-  /// for the whole recording — used instead to produce a "Speaker N: ..."
-  /// transcript, but only when there's actually more than one speaker, so
-  /// a normal solo journal entry doesn't get a needless "Speaker 1:" label.
-  String _extractTranscript(Map<String, dynamic> data) {
-    final results = data['results'] as List<dynamic>?;
-    if (results == null || results.isEmpty) return '';
-
-    final plainTranscript = results
-        .map((r) {
-          final alternatives =
-              (r as Map<String, dynamic>)['alternatives'] as List<dynamic>?;
-          if (alternatives == null || alternatives.isEmpty) return '';
-          return (alternatives.first as Map<String, dynamic>)['transcript']
-                  as String? ??
-              '';
-        })
-        .where((t) => t.isNotEmpty)
+  /// Overlap gives boundary words context. Timed words belong to exactly one
+  /// core interval by midpoint. Services omitting times use conservative text
+  /// overlap matching; boundary fidelity then needs review against the audio.
+  static String extractChunk(
+    Map<String, dynamic> data, {
+    required double requestStart,
+    required double coreStart,
+    required double coreEnd,
+    String previous = '',
+    int segment = 1,
+  }) {
+    final results = (data['results'] as List?) ?? [];
+    final alternatives = results
+        .map((r) => ((r as Map)['alternatives'] as List?) ?? [])
+        .where((a) => a.isNotEmpty)
+        .map((a) => a.first as Map)
+        .toList();
+    if (alternatives.isEmpty) return '';
+    var words = alternatives
+        .expand((a) => (a['words'] as List?) ?? [])
+        .cast<Map>()
+        .toList();
+    final lastWords = alternatives.last['words'] as List?;
+    if (lastWords != null &&
+        lastWords.any((w) => (w as Map)['speakerTag'] != null)) {
+      words = lastWords
+          .cast<Map>(); // Diarization's final result repeats all timed words.
+    }
+    double seconds(Object? value) =>
+        double.tryParse(value.toString().replaceFirst('s', '')) ?? 0;
+    if (words.isNotEmpty &&
+        words.every((w) => w['startTime'] != null && w['endTime'] != null)) {
+      final selected = words.where((w) {
+        final midpoint =
+            requestStart +
+            (seconds(w['startTime']) + seconds(w['endTime'])) / 2;
+        return midpoint >= coreStart && midpoint < coreEnd;
+      }).toList();
+      final speakers = selected
+          .map((w) => w['speakerTag'])
+          .whereType<int>()
+          .toSet();
+      if (speakers.length > 1) {
+        final output = StringBuffer();
+        int? previousSpeaker;
+        for (final word in selected) {
+          final speaker = word['speakerTag'] as int? ?? 1;
+          if (speaker != previousSpeaker) {
+            if (output.isNotEmpty) output.write('\n');
+            output.write('Segment $segment, Speaker $speaker:');
+            previousSpeaker = speaker;
+          }
+          output.write(' ${word['word'] as String? ?? ''}');
+        }
+        return output.toString();
+      }
+      return selected
+          .map((w) => w['word'] as String? ?? '')
+          .where((w) => w.isNotEmpty)
+          .join(' ');
+    }
+    final text = alternatives
+        .map((a) => a['transcript'] as String? ?? '')
+        .where((s) => s.isNotEmpty)
         .join(' ');
-
-    final lastAlternatives =
-        (results.last as Map<String, dynamic>)['alternatives']
-            as List<dynamic>?;
-    final words = lastAlternatives == null || lastAlternatives.isEmpty
-        ? null
-        : (lastAlternatives.first as Map<String, dynamic>)['words']
-              as List<dynamic>?;
-    if (words == null || words.isEmpty) return plainTranscript;
-
-    final speakerTags = words
-        .map((w) => (w as Map<String, dynamic>)['speakerTag'] as int?)
-        .whereType<int>()
-        .toSet();
-    if (speakerTags.length <= 1) return plainTranscript;
-
-    final buffer = StringBuffer();
-    int? currentSpeaker;
-    for (final w in words) {
-      final word = w as Map<String, dynamic>;
-      final speaker = word['speakerTag'] as int? ?? 1;
-      final text = word['word'] as String? ?? '';
-      if (text.isEmpty) continue;
-      if (speaker != currentSpeaker) {
-        if (currentSpeaker != null) buffer.write('\n');
-        buffer.write('Speaker $speaker: $text');
-        currentSpeaker = speaker;
-      } else {
-        buffer.write(' $text');
+    if (previous.isEmpty || coreStart == 0) return text;
+    final old = previous.split(RegExp(r'\s+'));
+    final next = text.split(RegExp(r'\s+'));
+    for (var n = min(32, min(old.length, next.length)); n > 0; n--) {
+      if (old.sublist(old.length - n).join(' ').toLowerCase() ==
+          next.take(n).join(' ').toLowerCase()) {
+        return next.skip(n).join(' ');
       }
     }
-    return buffer.toString().trim();
+    return text;
   }
 }

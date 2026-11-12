@@ -49,3 +49,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Release identity is supplied locally; signing secrets never belong in Git.
+/release/identity.json
+/release/generated/
+**/key.properties
+**/*.keystore
+**/*.jks

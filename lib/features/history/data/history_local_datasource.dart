@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/storage/private_store.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,16 +8,14 @@ import 'package:ai_voice_docs/core/errors/exceptions.dart';
 
 import 'history_item.dart';
 
-/// Persists history as a single JSON-encoded list under one SharedPreferences
-/// key — plenty for a bounded, locally-scoped list like this; a real
-/// database would be overkill.
+/// Persists the entire encrypted history. Entries are never trimmed automatically.
 class HistoryLocalDataSource {
   HistoryLocalDataSource(this._prefs);
 
   final SharedPreferences _prefs;
 
-  List<HistoryItem> readAll() {
-    final raw = _prefs.getString(PrefsKeys.history);
+  Future<List<HistoryItem>> readAll() async {
+    final raw = await PrivateStore(_prefs).read(PrefsKeys.history);
     if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw) as List<dynamic>;
@@ -31,6 +30,6 @@ class HistoryLocalDataSource {
 
   Future<void> writeAll(List<HistoryItem> items) async {
     final encoded = jsonEncode(items.map((e) => e.toJson()).toList());
-    await _prefs.setString(PrefsKeys.history, encoded);
+    await PrivateStore(_prefs).write(PrefsKeys.history, encoded);
   }
 }

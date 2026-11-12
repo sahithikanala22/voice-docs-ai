@@ -86,19 +86,12 @@ class HistoryTile extends StatelessWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppTheme.brandRays[0],
-                                AppTheme.brandRays[1],
-                              ],
-                            ),
+                            color: const Color(0xFF080A12),
+                            borderRadius: BorderRadius.circular(13),
                           ),
                           child: const Icon(
-                            Icons.mic_rounded,
-                            color: Colors.white,
+                            Icons.graphic_eq_rounded,
+                            color: Color(0xFF42CAE8),
                             size: 20,
                           ),
                         ),
@@ -133,7 +126,7 @@ class HistoryTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: folderColor,
                             ),

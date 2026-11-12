@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/storage/private_store.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,8 +16,8 @@ class TaskLocalDataSource {
 
   final SharedPreferences _prefs;
 
-  List<Task> readAll() {
-    final raw = _prefs.getString(PrefsKeys.tasks);
+  Future<List<Task>> readAll() async {
+    final raw = await PrivateStore(_prefs).read(PrefsKeys.tasks);
     if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw) as List<dynamic>;
@@ -31,6 +32,6 @@ class TaskLocalDataSource {
 
   Future<void> writeAll(List<Task> tasks) async {
     final encoded = jsonEncode(tasks.map((e) => e.toJson()).toList());
-    await _prefs.setString(PrefsKeys.tasks, encoded);
+    await PrivateStore(_prefs).write(PrefsKeys.tasks, encoded);
   }
 }

@@ -242,6 +242,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return;
     }
 
+    final lockController = ref.read(appLockControllerProvider.notifier);
     final XFile? picked;
     try {
       picked = await ImagePicker().pickImage(
@@ -259,10 +260,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
       return;
     }
-    if (picked == null || !mounted) return;
+    if (picked == null) return;
 
     final savedPath = await _saveAvatarFile(picked);
-    await ref.read(appLockControllerProvider.notifier).updateAvatar(savedPath);
+    await lockController.updateAvatar(savedPath);
     if (mounted) setState(() => _avatarPath = savedPath);
   }
 

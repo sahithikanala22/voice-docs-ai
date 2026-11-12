@@ -1,4 +1,10 @@
 import 'dart:io';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
+import 'package:ai_voice_docs/core/privacy/local_data_service.dart';
+import 'package:ai_voice_docs/core/providers/core_providers.dart';
+import 'package:ai_voice_docs/core/providers/notification_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/whisper_providers.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -25,9 +31,11 @@ import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart'
 import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
 
 import '../providers/settings_providers.dart';
+import 'package:ai_voice_docs/features/diary/presentation/providers/diary_providers.dart';
 import '../widgets/accent_color_picker.dart';
 import '../widgets/font_picker.dart';
 import '../widgets/google_cloud_speech_settings.dart';
+import '../widgets/whisper_speech_settings.dart';
 import '../widgets/paper_style_picker.dart';
 import '../widgets/settings_section.dart';
 import '../widgets/theme_mode_selector.dart';
@@ -59,6 +67,80 @@ class SettingsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 SettingsSection(
+                  title: 'Speech Recognition',
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RadioGroup<SpeechEngine>(
+                            groupValue: settings.speechEngine,
+                            onChanged: (engine) async {
+                              if (engine == null) return;
+                              if (engine == SpeechEngine.googleCloud &&
+                                  settings.speechEngine != engine) {
+                                final accepted = await showDialog<bool>(
+                                  context: context,
+                                  builder: (c) => AlertDialog(
+                                    title: const Text(
+                                      'Use Google Cloud speech?',
+                                    ),
+                                    content: const Text(
+                                      'Audio is saved on this device before transcription. Google uploads use short chunks with retry checkpoints. Internet and your API key are required; charges may apply. Audio remains in Recover recordings until explicitly deleted. For offline audio capture, use Record meeting.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(c, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () => Navigator.pop(c, true),
+                                        child: const Text('Use Google Cloud'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (accepted != true) return;
+                              }
+                              await controller.setSpeechEngine(engine);
+                            },
+                            child: Column(
+                              children: [
+                                for (final engine in SpeechEngine.values)
+                                  RadioListTile<SpeechEngine>(
+                                    value: engine,
+                                    title: Text(engine.label),
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            settings.speechEngine.privacyDescription,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (settings.speechEngine == SpeechEngine.whisper)
+                      const WhisperSpeechSettings(),
+                    if (settings.speechEngine == SpeechEngine.googleCloud) ...[
+                      const Divider(height: 1),
+                      GoogleCloudSpeechSettings(
+                        apiKey: settings.googleCloudApiKey,
+                      ),
+                    ],
+                  ],
+                ),
+                SettingsSection(
                   title: 'Account',
                   children: [
                     ListTile(
@@ -71,8 +153,10 @@ class SettingsScreen extends ConsumerWidget {
                               ),
                             )
                           : const Icon(Icons.person_outline_rounded),
-                      title: Text(account?.name ?? 'Signed in'),
-                      subtitle: const Text('View profile'),
+                      title: Text(account?.name ?? 'Local profile'),
+                      subtitle: const Text(
+                        'Local profile · stored on this device',
+                      ),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => context.push('/profile'),
                     ),
@@ -105,9 +189,23 @@ class SettingsScreen extends ConsumerWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(16),
-                      child: ThemeModeSelector(
-                        value: settings.themeMode,
-                        onChanged: controller.setThemeMode,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Choose your appearance',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Dark is the default. System follows your device.',
+                          ),
+                          const SizedBox(height: 16),
+                          ThemeModeSelector(
+                            value: settings.themeMode,
+                            onChanged: controller.setThemeMode,
+                          ),
+                        ],
                       ),
                     ),
                     const Divider(height: 1),
@@ -227,52 +325,6 @@ class SettingsScreen extends ConsumerWidget {
                   ],
                 ),
                 SettingsSection(
-                  title: 'Speech Recognition',
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SegmentedButton<SpeechEngine>(
-                            segments: const [
-                              ButtonSegment(
-                                value: SpeechEngine.onDevice,
-                                label: Text('On-device'),
-                              ),
-                              ButtonSegment(
-                                value: SpeechEngine.googleCloud,
-                                label: Text('Google Cloud'),
-                              ),
-                            ],
-                            selected: {settings.speechEngine},
-                            onSelectionChanged: (value) =>
-                                controller.setSpeechEngine(value.first),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            settings.speechEngine == SpeechEngine.onDevice
-                                ? 'Free and works offline. Reliability depends on your phone\'s own speech recognizer.'
-                                : 'Generally more accurate. Needs internet and your own API key; bills per use past the free tier.',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (settings.speechEngine == SpeechEngine.googleCloud) ...[
-                      const Divider(height: 1),
-                      GoogleCloudSpeechSettings(
-                        apiKey: settings.googleCloudApiKey,
-                      ),
-                    ],
-                  ],
-                ),
-                SettingsSection(
                   title: 'Behavior',
                   children: [
                     SwitchListTile(
@@ -299,7 +351,7 @@ class SettingsScreen extends ConsumerWidget {
                       leading: const Icon(Icons.upload_file_outlined),
                       title: const Text('Export backup'),
                       subtitle: const Text(
-                        'Save history, folders, tasks & settings to a file',
+                        'Includes photos and personal data in a readable file. Keep it private. PIN credentials and API keys are excluded.',
                       ),
                       onTap: () => _exportBackup(context, ref),
                     ),
@@ -318,6 +370,25 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Data',
                   children: [
                     ListTile(
+                      leading: const Icon(Icons.restore_rounded),
+                      title: const Text('Recover recordings'),
+                      subtitle: const Text(
+                        'Play, export, transcribe or delete saved audio',
+                      ),
+                      onTap: () => context.push('/recover-recordings'),
+                    ),
+                    ListTile(
+                      leading: Icon(
+                        Icons.delete_forever_outlined,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      title: const Text('Delete all local data'),
+                      subtitle: const Text(
+                        'Remove this profile and all app data on this device',
+                      ),
+                      onTap: () => _confirmDeleteAll(context, ref),
+                    ),
+                    ListTile(
                       leading: Icon(
                         Icons.delete_sweep_outlined,
                         color: Theme.of(context).colorScheme.error,
@@ -335,6 +406,14 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsSection(
                   title: 'About',
                   children: [
+                    ListTile(
+                      leading: const Icon(Icons.privacy_tip_outlined),
+                      title: const Text('Privacy policy'),
+                      subtitle: const Text(
+                        'Data use, storage, permissions and deletion',
+                      ),
+                      onTap: () => context.push('/privacy'),
+                    ),
                     const ListTile(
                       leading: Icon(Icons.info_outline_rounded),
                       title: Text(AppConstants.appName),
@@ -344,9 +423,9 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     const ListTile(
                       leading: Icon(Icons.wifi_off_rounded),
-                      title: Text('Works entirely offline'),
+                      title: Text('Your data and speech privacy'),
                       subtitle: Text(
-                        'Voice, reminders and your saved history never leave this device.',
+                        'History and reminders are stored on this device. Device speech services may use the internet. Google Cloud uploads your recordings for transcription. Playback depends on the selected device voice.',
                       ),
                     ),
                   ],
@@ -400,6 +479,7 @@ class SettingsScreen extends ConsumerWidget {
     );
     if (source == null || !context.mounted) return;
 
+    final controller = ref.read(settingsControllerProvider.notifier);
     final XFile? picked;
     try {
       picked = await ImagePicker().pickImage(
@@ -424,7 +504,6 @@ class SettingsScreen extends ConsumerWidget {
     if (await destFile.exists()) await destFile.delete();
     await File(picked.path).copy(destFile.path);
 
-    final controller = ref.read(settingsControllerProvider.notifier);
     await controller.setCustomBackgroundPath(destFile.path);
     await controller.setPaperStyle(PaperStyle.customImage);
   }
@@ -498,8 +577,7 @@ class SettingsScreen extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Restore from backup?'),
         content: const Text(
-          'This replaces all history, folders, tasks, settings and your PIN on this device with '
-          'what\'s in the backup file. This cannot be undone.',
+          'This replaces the history, folders, tasks, settings and images included in the backup. Your current PIN and API key are kept. This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -519,6 +597,7 @@ class SettingsScreen extends ConsumerWidget {
       await ref.read(backupServiceProvider).importFromFile(File(path));
       ref
         ..invalidate(historyControllerProvider)
+        ..invalidate(diaryControllerProvider)
         ..invalidate(folderControllerProvider)
         ..invalidate(taskControllerProvider)
         ..invalidate(settingsControllerProvider)
@@ -535,6 +614,106 @@ class SettingsScreen extends ConsumerWidget {
         );
       }
     }
+  }
+
+  Future<void> _confirmDeleteAll(BuildContext context, WidgetRef ref) async {
+    var busy = false;
+    String? error;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, update) => PopScope(
+          canPop: !busy,
+          child: AlertDialog(
+            title: const Text('Delete all local data?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Permanently delete your local profile, PIN, diary, history, tasks, settings, photos, saved recovery audio and internal backups, and cancel reminders. Files shared or saved outside this app are not deleted. Export anything you need first.',
+                ),
+                if (busy)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (error != null)
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: busy ? null : () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: busy
+                    ? null
+                    : () async {
+                        update(() {
+                          busy = true;
+                          error = null;
+                        });
+                        try {
+                          await ref
+                              .read(whisperModelStoreProvider)
+                              .cancelAndWait();
+                          await LocalDataService(
+                            prefs: ref.read(sharedPreferencesProvider),
+                            stopRecording: () async {
+                              await ref
+                                  .read(recordingCoordinatorProvider)
+                                  .stop(cancelTranscription: true);
+                              await ref
+                                  .read(ttsControllerProvider.notifier)
+                                  .stop();
+                            },
+                            cancelReminders: () => ref
+                                .read(notificationServiceProvider)
+                                .cancelAll(),
+                          ).deleteAll();
+                          ref
+                            ..invalidate(historyControllerProvider)
+                            ..invalidate(diaryControllerProvider)
+                            ..invalidate(folderControllerProvider)
+                            ..invalidate(taskControllerProvider)
+                            ..invalidate(settingsControllerProvider)
+                            ..invalidate(recordingCoordinatorProvider)
+                            ..invalidate(speechProviderImplProvider)
+                            ..invalidate(whisperModelControllerProvider)
+                            ..invalidate(whisperModelStoreProvider)
+                            ..invalidate(speechControllerProvider)
+                            ..invalidate(ttsControllerProvider);
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          ref.invalidate(appLockControllerProvider);
+                        } catch (_) {
+                          if (dialogContext.mounted) {
+                            update(() {
+                              busy = false;
+                              error =
+                                  'Deletion could not finish. Some data may already be removed. Try again.';
+                            });
+                          }
+                        }
+                      },
+                child: const Text('Permanently delete'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmClearHistory(BuildContext context, WidgetRef ref) async {

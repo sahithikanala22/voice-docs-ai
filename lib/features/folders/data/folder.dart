@@ -12,7 +12,7 @@ String _nextId() => '${DateTime.now().microsecondsSinceEpoch}-${_idCounter++}';
 /// "Work"). Purely organizational — deleting a folder never deletes the
 /// entries in it, they just become unfiled again.
 @freezed
-class Folder with _$Folder {
+abstract class Folder with _$Folder {
   const factory Folder({
     required String id,
     required String name,

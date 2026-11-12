@@ -1,220 +1,176 @@
-# Voxi Translate
+# Voice Docs AI
 
-A production-ready Flutter app for real-time speech-to-text, translation, and text-to-speech — rebuilt from a reference speech/translator app screenshot set with a modernized Material 3 interface, clean architecture, and Riverpod state management.
+A Flutter app for voice journal entries, tasks, searchable history, folders,
+calendar entries, reminders, and local text-to-speech playback. Translation is
+not part of the current app.
 
-## What it does
+## Reproducible setup
 
-- **Voice to Text** — press the mic, see your words transcribed in real time (live partial results), then copy / clear / speak-back / share the transcript.
-- **Translator** — type or dictate text in a source language, get an instant translation in a chat-bubble layout, with one tap to swap languages.
-- **History** — every transcript and translation is saved locally, searchable, swipe-to-delete, with a detail sheet that can replay the audio.
-- **Settings** — light/dark/system theme, default languages, auto-play-translation toggle, haptics, clear-history.
-- **34 supported languages** with flag icons, reused across a single shared language picker.
+Use **Flutter 3.44.8 stable / Dart 3.12.2**, Java 17, and Android SDK 36.
+The project build number is 7. Keep build numbers increasing when updating an installed app to avoid a downgrade reinstall.
+The committed `pubspec.lock` is the application dependency lockfile. Models use
+Freezed 3; their source classes are abstract and generated files are ignored.
+Regenerate them on every fresh checkout:
 
-## Redesign vs. the reference screenshots
-
-The reference app used a single flat dark-teal palette and in-page navigation buttons ("VOICE TO TEXT" / "TRANSLATOR" on a home screen, a back-arrow history). This rebuild:
-
-- Uses a **Material 3 seeded color scheme** (light + dark, both derived from the same brand teal) instead of one fixed palette.
-- Replaces in-page nav buttons with a **persistent bottom navigation bar** (`StatefulShellRoute`), so each tab keeps its own state when you switch away and back.
-- Replaces the static mic icon with an **animated, sound-reactive pulsing mic button** driven by the live microphone amplitude.
-- Replaces boxy translation bubbles with **rounded, modern chat bubbles** (outline for source, filled for the translation).
-- Adds **swipe-to-delete history rows** with relative timestamps and a search bar.
-
-## Tech stack
-
-| Concern | Choice |
-|---|---|
-| Framework | Flutter (stable) / Dart 3, Material 3 |
-| State management | `flutter_riverpod` (manual `Notifier`/`AsyncNotifier`, see note below) |
-| Navigation | `go_router` (`StatefulShellRoute.indexedStack`) |
-| Networking | `dio` (reserved for future cloud-provider stubs), `translator` (free translation) |
-| Models | `freezed` + `json_serializable` |
-| Local storage | `shared_preferences` |
-| Speech-to-text | `speech_to_text` (native OS recognizer) |
-| Text-to-speech | `flutter_tts` (native OS engine) |
-| Permissions | `permission_handler` |
-| UI | `flag` (flag icons), `share_plus` |
-
-### A note on Riverpod code generation
-
-The plan originally called for `riverpod_generator` (`@riverpod` annotations). While wiring this up, `dart run build_runner build` failed to compile: `riverpod_generator`'s transitive dependency `custom_lint_core` ships two internal packages (`analyzer_plugin` and `custom_lint_visitor`) that are each pinned to a different, incompatible slice of the `analyzer` package's API — no single `analyzer` version in this environment's resolvable range satisfies both. This is an upstream dependency conflict, not something fixable from application code.
-
-The fix: all providers use **manual Riverpod syntax** (`Provider`, `NotifierProvider`, `NotifierProvider.family`, `AsyncNotifierProvider`) instead of code-generated ones. This has zero effect on the architecture or how state flows — it only changes provider *declaration* boilerplate. `build_runner` is still used, just for `freezed`/`json_serializable` models only, which don't pull in the broken chain.
-
-## Architecture
-
-Feature-first, clean-architecture-lite: each feature has `data/` (providers + repositories talking to plugins/storage), `domain/` (repository interfaces + entities), and `presentation/` (Riverpod controllers + screens/widgets). Where a separate "domain entity" would just duplicate a data model with no behavioral difference (e.g. history entries), one model is used across all three layers instead of maintaining parallel mapper boilerplate.
-
-```
-lib/
-  main.dart                  Bootstraps SharedPreferences, then runs the app inside a ProviderScope
-  app.dart                   MaterialApp.router: wires the theme and go_router config
-
-  core/
-    theme/app_theme.dart      Material 3 ColorScheme.fromSeed, light + dark
-    router/app_router.dart    All routes: the bottom-nav shell + the language picker route
-    constants/                App-wide constants, SharedPreferences key names, the static language catalog
-    models/language.dart      Freezed `Language` model (code, name, nativeName, flag country code)
-    providers/core_providers.dart   The SharedPreferences provider every feature persists through
-    errors/                   Data-layer exceptions + a UI-facing Failure enum
-    widgets/                  Shared building blocks: EmptyState, AppSnackbar, LanguageSelectorChip
-    utils/time_ago.dart       Hand-rolled relative-time formatting ("2m ago")
-
-  features/
-    speech_to_text/
-      data/providers/         SpeechProvider interface + OnDeviceSpeechProvider (speech_to_text pkg, default)
-                               + CloudSpeechProviderStub (documented, inactive extension point)
-      data/repositories/      SpeechRepositoryImpl — the only thing presentation code depends on
-      domain/                 SpeechRepository interface, RecognitionState (freezed)
-      presentation/           SpeechController (per-screen family, see below), the voice-to-text screen,
-                               the animated mic button + sound-wave painter
-
-    translation/
-      data/providers/         TranslationProvider interface + FreeGoogleTranslationProvider (default)
-                               + CloudTranslationProviderStub (documented, inactive extension point)
-      data/repositories/      TranslationRepositoryImpl
-      domain/                 TranslationRepository interface, TranslationResult (freezed)
-      presentation/           TranslationController (debounced auto-translate, language swap),
-                               the translator screen, chat bubble + language swap bar widgets
-
-    text_to_speech/
-      data/providers/         TtsProvider interface + DeviceTtsProvider (flutter_tts, default)
-      data/repositories/      TtsRepositoryImpl
-      domain/                 TtsRepository interface
-      presentation/           TtsController — tracks isSpeaking; consumed by other screens, no route of its own
-
-    history/
-      data/                   HistoryItem (freezed + json model, used directly as the domain entity too),
-                               HistoryLocalDataSource (SharedPreferences, JSON-encoded list),
-                               HistoryRepositoryImpl
-      domain/                 HistoryRepository interface
-      presentation/           HistoryController (AsyncNotifier), the history screen, swipe-to-delete tile
-
-    settings/
-      domain/app_settings.dart          Freezed + json AppSettings (theme, default languages, toggles)
-      data/                             SettingsLocalDataSource, SettingsRepositoryImpl
-      domain/settings_repository.dart   SettingsRepository interface
-      presentation/                     SettingsController (AsyncNotifier), the settings screen,
-                                         and the shared LanguagePickerScreen used by every "pick a language" flow
-
-  navigation/root_scaffold.dart   The bottom-nav shell wrapping the four StatefulShellBranches
-```
-
-### The modular provider pattern
-
-Both speech-to-text and translation define an **abstract provider interface** (`SpeechProvider`, `TranslationProvider`) in their `data/providers/` folder. The repository only ever talks to that interface — never to `speech_to_text`, `flutter_tts`, or `translator` directly. Two implementations exist per interface:
-
-1. The **default, wired-up, free/on-device** implementation (`OnDeviceSpeechProvider`, `FreeGoogleTranslationProvider`).
-2. A **documented, inactive stub** (`CloudSpeechProviderStub`, `CloudTranslationProviderStub`) showing exactly which methods to implement to plug in a paid cloud API (e.g. Google Cloud Speech-to-Text, Cloud Translation API) later.
-
-To switch providers, implement the stub and change one line — the Riverpod provider override in `speech_providers.dart` / `translation_providers.dart` (e.g. `Provider<SpeechProvider>((ref) => YourCloudProvider())`). Nothing else in the app changes.
-
-### Why speech state is a `family` provider
-
-`StatefulShellRoute` keeps every bottom-nav tab alive once visited (that's what makes state persist when you switch tabs). If the speech controller were a single global provider, starting a recording on the Translator tab would also update the Home tab's transcript, since both would be watching the same state. `speechControllerProvider` is keyed by a `sessionTag` (`'home'` / `'translator'`) so each screen gets its own independent live-recognition state, while both still route through the same underlying native-recognizer singleton (the OS itself only supports one active recognition session anyway).
-
-## Permissions
-
-**Android** (`android/app/src/main/AndroidManifest.xml`):
-- `RECORD_AUDIO` — microphone access for speech recognition.
-- `INTERNET` — required for the translation network call (see caveat below).
-- A `<queries>` entry for `android.speech.RecognitionService`, required on API 30+ for the app to see the on-device speech recognizer at all (package-visibility rules).
-
-**iOS** (`ios/Runner/Info.plist`):
-- `NSMicrophoneUsageDescription`
-- `NSSpeechRecognitionUsageDescription`
-
-Both are also requested at runtime via `permission_handler` before the mic is used, with the result surfaced as a snackbar if denied.
-
-### iOS Podfile
-
-`ios/Podfile` is checked in (built from Flutter 3.44's own `Podfile-ios` template) and already includes the `post_install` block permission_handler needs to make the microphone/speech-recognizer permission dialogs fire on iOS. This project was scaffolded and verified on Windows, where CocoaPods and Xcode aren't available, so the Podfile has never actually been run through `pod install` — the first `flutter build ios` / `pod install` on a Mac is the real test of it. If CocoaPods regenerates or reformats it in a way that drops the custom block, re-add this inside `post_install`:
-
-```ruby
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-    target.build_configurations.each do |config|
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << [
-        'PERMISSION_MICROPHONE=1',
-        'PERMISSION_SPEECH_RECOGNIZER=1',
-      ]
-    end
-  end
-end
-```
-
-## Important: what's actually offline
-
-- **Speech-to-text and text-to-speech are on-device and work offline** (they use the native OS engines via `speech_to_text` / `flutter_tts`, no API key, no network call).
-- **Translation requires an internet connection.** The `translator` package calls Google's free, unofficial translate endpoint — there's no API key, but it is a network call. There is no true offline translator without a large on-device model (e.g. ML Kit, which is Android-only and requires per-language model downloads); if you need that, implement it behind `TranslationProvider` the same way the cloud stub is documented.
-
-## Setup
-
-### Prerequisites
-- Flutter SDK (stable channel), this project was built against Flutter 3.44 / Dart 3.12.
-- Android Studio / Xcode set up for your target platform(s).
-- A device or emulator/simulator with a microphone for testing speech features (the Windows/Linux/macOS desktop simulators generally don't expose a mic to the emulator).
-
-### First-time setup
-
-```bash
-cd ai_voice_docs
-flutter pub get
-dart run build_runner build --delete-conflicting-outputs   # generates *.freezed.dart / *.g.dart
-```
-
-### Run
-
-```bash
-flutter run                 # runs on whatever device/emulator is connected
-flutter run -d chrome       # web (speech recognition support varies by browser)
-```
-
-### Regenerating code after model changes
-
-Anytime you touch a `@freezed` class or JSON model (i.e. anything under `domain/`, `data/`, that has a `part '*.freezed.dart'` or `part '*.g.dart'`), re-run:
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
-```
-
-Or keep it watching during development:
-
-```bash
-dart run build_runner watch --delete-conflicting-outputs
-```
-
-### Static analysis & tests
-
-```bash
-flutter analyze
+```sh
+flutter pub get --enforce-lockfile
+dart run build_runner build
+flutter analyze --fatal-infos
 flutter test
+flutter devices
+flutter run -d <android-device-id>
 ```
 
-## Testing checklist
+The GitHub Actions workflow uses the same pinned Flutter release, checks the
+lockfile, regenerates models, checks formatting, runs analysis and tests, and
+builds a debug APK. To update dependencies, update constraints intentionally,
+run `flutter pub get`, regenerate, run the checks, and commit the lockfile.
 
-Automated (run these yourself, they're already passing):
-- [ ] `flutter analyze` — zero issues
-- [ ] `flutter test` — all tests pass (a widget smoke test, plus unit tests for the translation controller's debounce/swap/history-save behavior and the history repository's persistence)
+Android and iOS are the intended platforms. The current app imports mobile
+plugins and `dart:io`; browser and desktop support are not advertised.
 
-Manual (needs a real device or an emulator with mic support):
-- [ ] First mic tap prompts for microphone permission; denying shows a clear error instead of silently failing
-- [ ] Speaking produces live, partial transcript updates (not just a final result after you stop)
-- [ ] Stopping a non-empty voice session saves an entry to History
-- [ ] Copy / Clear / Speak / Share all work on a transcript
-- [ ] Translator: typing pauses briefly then auto-translates; swapping languages swaps both the language pair and the text
-- [ ] Translator: dictating into the source field (mic icon in the text field) fills the field and triggers translation
-- [ ] Auto-play-translation setting actually speaks the result when enabled, stays silent when disabled
-- [ ] History: search filters by source or translated text; swipe removes one entry; "Clear all" asks for confirmation first
-- [ ] History persists across an app restart (kill and relaunch the app)
-- [ ] Settings: theme mode switches immediately and also persists across restart; default language changes apply to new sessions
-- [ ] Turn off Wi-Fi/data: speech-to-text and text-to-speech still work; translation fails with a readable error instead of hanging
-- [ ] Rotate the device / try a small phone screen: nothing overflows, especially the empty states
+## Android first
 
-## Known limitations / honest scope boundaries
+The current deliverable targets Android 7.0 / API 24 or later and Android SDK 36.
+On Windows, run from the project folder with a USB-debugging-authorized phone:
 
-- The app's own UI chrome (button labels, screen titles) is English-only; only the *content* you speak/translate is multilingual. Full UI localization would mean adding `flutter_localizations` + `.arb` files per language, which wasn't in scope here but slots in cleanly given the existing `intl` dependency.
-- No automated integration/E2E tests exercising real microphone input — plugin method channels aren't mockable at that depth without a physical device or a much heavier test harness.
-- iOS was authored and analyzed on Windows and could not be built or run here; see the Podfile note above.
+```powershell
+./scripts/run_android.ps1                     # build, update in place, launch
+./scripts/run_android.ps1 -SkipBuild          # reuse the existing built APK
+./scripts/run_android.ps1 -CheckOnly          # verify the APK without a phone
+```
+
+Use `-DeviceId <serial>` when multiple devices are connected. The script checks
+package/build numbers and the APK signature, refuses downgrades, and installs
+with `adb install -r`. It never uninstalls or clears application data.
+
+Android device acceptance checks after unlocking the app:
+
+- Record on Voice, then switch tabs or background the app: recording stops and
+  the final transcript is saved once with the original date/folder/language.
+- Dictate into Tasks/Add Entry, stop, then save: final words are included.
+- Background and reopen: the PIN/biometric gate appears. Existing four-digit
+  PINs still work; newly created PINs have six digits.
+- Clear history while a task reminder exists: that task reminder remains.
+- Back up a custom background/profile photo and restore: images still display.
+- Delete a folder: its entries appear under Unfiled. Confirm the chosen playback
+  voice and export a long transcript containing the languages you use.
+
+iPhone release validation is deferred; Android is the first device-test target.
+
+## Recording and privacy
+
+One shared recording coordinator owns the microphone. Starting another capture
+stops the previous one. Navigation, sheet dismissal and backgrounding stop the
+recording; late final results are processed before finishing. Voice-tab entries
+save through the coordinator with the language, folder and date captured at
+start. Saving never depends on a mounted screen. Multi-speaker transcripts are
+preserved in full so navigation cannot discard another speaker's words.
+Dictation fields keep their final text; saving a form waits for dictation to
+finish. Dismissing a form discards its unsaved draft.
+
+- **Device speech:** uses the phone's OS recognition service. That service may
+  send audio to its provider or require a network connection. Offline operation
+  depends on device settings, language downloads and recognizer support.
+- **Whisper — Free Offline:** select it in Settings → Speech Recognition and
+  download the multilingual base model once (about 142 MiB). The app verifies its
+  size and SHA-256 before showing Ready. Recording and transcription then work
+  locally without an API key or Cloud fallback. Text appears after Stop; audio
+  remains available for playback, export and retry. See
+  [offline setup, diagnosis and phone tests](docs/WHISPER_OFFLINE.md).
+- **Google Cloud speech:** durable PCM audio is saved before upload. Transcription
+  uses 50-second core chunks with two seconds of boundary context on either side,
+  checkpointed results, and bounded transient retries. Internet and the user's
+  API key are required; usage charges may apply. Transcription appears after Stop.
+- **Record meeting:** a separate, durable audio-only recorder works without an
+  API key or a speech model. Transcribe later, play, export WAV, or explicitly
+  delete from Voice > Saved recordings / Settings > Recover recordings. Audio
+  remains even after saving a transcript. No automatic retention expiry applies.
+  Capture is limited to 10 saved recordings and approximately 256 MiB of PCM per
+  capture. Sealing requires additional free space; storage usage is shown.
+- **Playback:** uses the device TTS engine and selected voice. Network use and
+  offline availability depend on that voice and installed language resources.
+- **History and reminders:** stored locally. Clearing history only cancels those
+  entries' reminders; task reminders remain scheduled. Entries are kept until
+  explicitly deleted, with history displayed in pages of 50.
+
+## Local data and app lock
+
+Recorder diagnosis, migration details, platform limits, executed checks, and a
+physical-device checklist are in [docs/RECORDER_RELIABILITY.md](docs/RECORDER_RELIABILITY.md).
+
+Feature JSON (history, tasks, folders, settings and account) is encrypted with
+AES-256-GCM. A random per-installation key is held by Android Keystore / iOS
+Keychain through `flutter_secure_storage`. Legacy plaintext preference blobs
+migrate on first successful read. Authentication failures fail closed rather
+than exposing an unlocked app or silently replacing unreadable data.
+Images remain files in the private app directory, protected by the OS; this is
+not a separate PIN-derived encrypted filesystem. Rooted/jailbroken devices and
+access to an already running, unlocked process are outside this screen lock's
+protection. Android automatic backup is disabled and its secure-window flag
+blocks app screenshots and task snapshots. iOS enables complete file protection.
+
+The app relocks when backgrounded and obscures its UI while inactive. New PINs
+have six digits and use salted PBKDF2-HMAC-SHA256 with 600,000 iterations.
+Existing four-digit SHA-256 credentials remain usable and are upgraded after a
+successful unlock. Failed PIN attempts persist across restarts; after five
+failures a growing cooldown applies. Resetting a forgotten app PIN while keeping
+data requires the phone's device passcode or biometrics. Internal pre-reset
+snapshots are encrypted with the device key.
+
+Android 8.0 / API 26+ derives PIN hashes with the platform PBKDF2 implementation
+on a background task queue. Existing hashes and the 600,000-round setting remain
+compatible. Older Android versions and other platforms use the Dart isolate
+fallback. The PIN screen shows progress and prevents repeated submissions while
+verification is running.
+
+To time the Android implementation against a public known-answer vector, run
+`flutter run -d <android-device-id> -t scripts/benchmark_pin.dart`. This temporary
+entrypoint never reads account data. Rebuild with `lib/main.dart` afterward to
+restore the regular app.
+
+## Backups and exports
+
+Version 2 JSON backups include history, tasks, folders, settings, profile fields,
+and the actual bytes of profile/background images. The current entry model has
+no separate diary-photo attachment field. PIN credentials, biometric preferences
+and Google API keys are excluded. Restore keeps the current PIN/API key and
+relinks images to newly created private paths on the destination phone.
+
+Before changing existing data, restore validates the version, all data sections,
+model schemas, record IDs, image references, SHA-256 checksums and image decoding.
+Failed writes roll preference values back. Unknown backup versions and incomplete
+attachments are rejected. Version 1 files remain importable; their old image
+paths are cleared because those files never contained the actual image bytes.
+Portable backups and shared exports contain readable personal data: store them
+privately. Only the internal PIN-recovery snapshot is encrypted automatically.
+
+PDFs paginate at text-line boundaries, including long entries. Flutter's text
+shaper and installed font fallback render multilingual and mixed-direction text
+offline. Text is embedded as high-resolution images, so PDFs are readable but
+not text-selectable/searchable; font coverage depends on the device. Word export
+retains editable text.
+
+## iOS release verification
+
+The project includes notification initialization and foreground delegation,
+camera/photo/microphone/speech/Face ID purpose strings, permission-handler flags,
+and a file-protection entitlement. Use a Mac with Xcode/CocoaPods and iOS 15+:
+
+```sh
+flutter pub get --enforce-lockfile
+dart run build_runner build
+flutter build ios --no-codesign
+```
+
+An iPhone is still required to verify permission prompts, denial/retry flows,
+notifications when foregrounded/backgrounded, Face ID, gallery/camera return,
+lock-on-background, interruption recovery, non-Latin PDF rendering, and restore
+to another device. Windows checks do not establish iOS release readiness.
+## Play Store release preparation
+
+See [release/README.md](release/README.md) for the signed AAB workflow, public
+privacy policy, store listing, Data safety worksheet and device test matrix.
+Recording recovery is available in Settings for retained Google Cloud audio.
+The local profile can be removed with Settings > Delete all local data.
+Do not upload the earlier debug UI preview as a production release.

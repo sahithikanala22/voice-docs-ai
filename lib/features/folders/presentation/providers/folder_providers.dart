@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/theme/app_theme.dart';
 
+import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 import '../../data/folder.dart';
 import '../../data/folder_local_datasource.dart';
 import '../../data/folder_repository_impl.dart';
@@ -50,6 +52,12 @@ class FolderController extends AsyncNotifier<List<Folder>> {
   }
 
   Future<void> removeFolder(String id) async {
+    await ref.read(historyControllerProvider.notifier).unfileFolder(id);
+    if (ref.read(settingsControllerProvider).value?.currentFolderId == id) {
+      await ref
+          .read(settingsControllerProvider.notifier)
+          .setCurrentFolderId(null);
+    }
     await ref.read(folderRepositoryProvider).remove(id);
     state = AsyncData(await ref.read(folderRepositoryProvider).getAll());
   }

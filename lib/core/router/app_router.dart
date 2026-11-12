@@ -1,4 +1,9 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/screens/meeting_recording_screen.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/screens/recover_recordings_screen.dart';
+import 'package:ai_voice_docs/core/privacy/privacy_policy_screen.dart';
+import 'package:flutter/widgets.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,6 +21,10 @@ import 'package:ai_voice_docs/features/tasks/presentation/screens/tasks_screen.d
 import 'package:ai_voice_docs/features/text_to_speech/presentation/screens/voice_picker_screen.dart';
 import 'package:ai_voice_docs/navigation/root_scaffold.dart';
 
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_screen.dart';
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_entry_screen.dart';
+import 'package:ai_voice_docs/features/diary/presentation/screens/diary_editor_screen.dart';
+
 const _lockRoutes = {'/signup', '/pin'};
 
 /// Notifies go_router's `redirect` to re-run whenever the app-lock state
@@ -30,6 +39,13 @@ class _AppLockRefreshNotifier extends ChangeNotifier {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
+    observers: [
+      _RecordingNavigationObserver(
+        () => ref
+            .read(recordingCoordinatorProvider)
+            .stop(cancelTranscription: true),
+      ),
+    ],
     initialLocation: '/',
     refreshListenable: _AppLockRefreshNotifier(ref),
     redirect: (context, state) {
@@ -39,6 +55,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Still loading the persisted account for the first time — app.dart's
       // own loading gate covers this, so just don't redirect yet.
       if (lockState == null) return null;
+      if (state.matchedLocation == '/privacy') return null;
 
       final needsSignup = lockState.account == null;
       final needsPin = !needsSignup && !lockState.isUnlocked;
@@ -49,6 +66,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/meeting-recorder',
+        builder: (context, state) => const MeetingRecordingScreen(),
+      ),
+      GoRoute(
+        path: '/recover-recordings',
+        builder: (context, state) => const RecoverRecordingsScreen(),
+      ),
+      GoRoute(
+        path: '/privacy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
@@ -72,16 +101,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/tasks',
-                builder: (context, state) => const TasksScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/history',
-                builder: (context, state) => const HistoryScreen(),
+                path: '/diary',
+                builder: (context, state) => const DiaryScreen(),
               ),
             ],
           ),
@@ -96,12 +117,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/settings',
-                builder: (context, state) => const SettingsScreen(),
+                path: '/tasks',
+                builder: (context, state) => const TasksScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/history',
+                builder: (context, state) => const HistoryScreen(),
               ),
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/diary-entry/new',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? const {};
+          return DiaryEditorScreen(
+            initialDate: extra['date'] as DateTime?,
+            startDictation: extra['dictate'] as bool? ?? false,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/diary-entry/:id',
+        builder: (context, state) =>
+            DiaryEntryScreen(entryId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/diary-entry/:id/edit',
+        builder: (context, state) =>
+            DiaryEditorScreen(entryId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/profile',
@@ -135,3 +188,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Root dialogs, sheets, route pushes and back navigation end microphone use.
+class _RecordingNavigationObserver extends NavigatorObserver {
+  _RecordingNavigationObserver(this.stop);
+  final Future<void> Function() stop;
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (previousRoute != null) unawaited(stop());
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      unawaited(stop());
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      unawaited(stop());
+}

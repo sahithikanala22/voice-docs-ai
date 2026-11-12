@@ -26,6 +26,19 @@ class BiometricAuthService {
   /// this never silently falls back to the phone's own system PIN/pattern —
   /// the point of the toggle is specifically fingerprint/face, and this
   /// app's PIN entry is right there as the other option.
+  /// Recovery requires the OS device credential or biometrics, so resetting
+  /// an app PIN cannot be used to bypass the lock and read existing entries.
+  Future<bool> authenticateRecovery() async {
+    try {
+      return await _auth.authenticate(
+        localizedReason: 'Verify device ownership to reset your app PIN',
+        biometricOnly: false,
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> authenticate() async {
     try {
       return await _auth.authenticate(

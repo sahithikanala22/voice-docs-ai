@@ -9,9 +9,9 @@ part 'app_settings.freezed.dart';
 part 'app_settings.g.dart';
 
 @freezed
-class AppSettings with _$AppSettings {
+abstract class AppSettings with _$AppSettings {
   const factory AppSettings({
-    @Default(ThemeMode.system) ThemeMode themeMode,
+    @Default(ThemeMode.dark) ThemeMode themeMode,
     @Default(AppConstants.defaultSourceLanguageCode) String sourceLanguageCode,
     @Default(true) bool hapticFeedback,
 
@@ -26,10 +26,8 @@ class AppSettings with _$AppSettings {
     /// Which backend transcribes speech — see [SpeechEngine].
     @Default(SpeechEngine.onDevice) SpeechEngine speechEngine,
 
-    /// User-supplied Google Cloud Speech-to-Text API key, only used when
-    /// [speechEngine] is [SpeechEngine.googleCloud]. Stored locally
-    /// (SharedPreferences) only — never bundled in the app or committed to
-    /// source, so it can't leak via the APK or the repo.
+    /// Stored in encrypted preferences with a device-protected encryption key.
+    /// Excluded from all portable backups.
     String? googleCloudApiKey,
 
     /// The chosen text-to-speech voice name per language code — a language

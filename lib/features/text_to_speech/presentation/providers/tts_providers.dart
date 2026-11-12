@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ai_voice_docs/core/utils/language_key.dart';
 
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 
@@ -34,10 +35,10 @@ class TtsController extends Notifier<bool> {
 
   Future<void> speak(String text, String languageCode) async {
     if (text.trim().isEmpty) return;
-    final voiceName = ref
-        .read(settingsControllerProvider)
-        .value
-        ?.ttsVoiceByLanguage[languageCode];
+    final voiceName = preferredVoice(
+      ref.read(settingsControllerProvider).value?.ttsVoiceByLanguage ?? {},
+      languageCode,
+    );
     await ref
         .read(ttsRepositoryProvider)
         .speak(text, languageCode, voiceName: voiceName);

@@ -1,0 +1,52 @@
+Voice Docs AI — release preparation status (2026-10-21, Asia/Calcutta)
+
+Project: C:\Users\sahit\voxi_translate
+Source version: 1.0.0+4
+Application ID: com.aivoicedocs.app
+
+Implemented
+- Release builds no longer fall back to the Android debug key.
+- Public developer contact/privacy definitions are required for release packaging.
+- Target API 36 pinned; restricted USE_EXACT_ALARM removed. Optional scheduling
+  permission and existing inexact reminder fallback remain.
+- Full offline privacy policy available from Settings, signup and PIN screens.
+- Explicit disclosure before switching to Google Cloud transcription.
+- Cloud captures retained as authenticated encrypted recovery files before upload.
+- Failed/empty uploads and history-save failures retain audio/transcripts.
+- Recover recordings screen: retry, edit transcript/date, save to History/Calendar,
+  delete recordings; limit of 10 prevents silent eviction of unsaved audio.
+- Delete all local data: stop capture/playback, cancel reminders, remove known
+  app files, clear preferences/encryption key, reset provider state/local profile.
+- Version code increased, release signing files excluded from source control.
+- Store listing, Data safety worksheet, device matrix, public-policy generator,
+  upload-key verifier, ELF alignment checker, release script and store artwork.
+
+Verified
+- Full existing/new regression suite: 66 tests passed.
+- Final recording edge case (null stop path) and coordinator checks: 16 passed.
+- Store artwork render completed; inspected feature graphic, exact RGB PNG sizes:
+  feature 1024x500, icon 512x512.
+- Final static analysis clean; formatting check passed for 158 Dart files.
+- Existing upload key verified (certificate validity, alias and private-key access).
+- Draft privacy generation works; missing public identity is rejected.
+- No signing keys/key.properties were found in Git's tracked-file listing.
+
+Not yet verified / blocked
+- No signed release AAB has been produced or approved.
+- Gradle native build attempts failed before app project configuration with
+  "The settings are not yet available for build"; a fresh staged project check
+  also did not complete successfully. This does not establish a release build.
+- Developer name, real support email and hosted public HTTPS privacy URL are
+  still required. release/identity.example.json intentionally contains blanks.
+- Draft policy HTML is not a published policy and must not be submitted as-is.
+- Native 16 KB checker has regression tests; actual final AAB/native compatibility
+  and 16 KB device runtime must still be checked.
+- Real-device microphone quality, languages, upgrade/data retention and reminder
+  delivery remain unverified. Complete release/device-test-matrix.md.
+- Play Console identity, forms, closed testing eligibility and production access
+  have not been inspected. No upload or publishing action was performed.
+
+Earlier preview
+The APK in this chat's outputs is the earlier October 20 UI preview. It does not
+contain today's release-preparation changes. The old launcher has been changed
+to open the current source and explain this rather than install stale code.

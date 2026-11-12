@@ -60,7 +60,7 @@ class _GoogleCloudSpeechSettingsState
           const SizedBox(height: 10),
           Text(
             'From Google Cloud Console: enable the "Cloud Speech-to-Text API", create an API key, then '
-            'restrict it to Android apps using package com.aivoicedocs.app. Stored only on this device '
+            'restrict it to the Speech API and configure the restrictions supported by your credentials. Stored encrypted on this device '
             '— never bundled with the app or sent anywhere except Google\'s API.',
             style: Theme.of(
               context,
@@ -68,7 +68,7 @@ class _GoogleCloudSpeechSettingsState
           ),
           const SizedBox(height: 8),
           Text(
-            'Note: no live captions in this mode — you\'ll see the transcript right after you stop '
+            'Audio is uploaded to Google when recording stops. Internet is required. No live captions in this mode — you\'ll see the transcript right after you stop '
             'talking, not word-by-word while speaking.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: scheme.primary,

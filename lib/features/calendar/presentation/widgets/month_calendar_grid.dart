@@ -110,7 +110,7 @@ class MonthCalendarGrid extends StatelessWidget {
                                         ? FontWeight.w800
                                         : FontWeight.w500,
                                     color: isSelected
-                                        ? Colors.white
+                                        ? scheme.onPrimary
                                         : !inMonth
                                         ? scheme.onSurfaceVariant.withValues(
                                             alpha: 0.35,
@@ -136,7 +136,7 @@ class MonthCalendarGrid extends StatelessWidget {
                                           decoration: BoxDecoration(
                                             shape: BoxShape.circle,
                                             color: isSelected
-                                                ? Colors.white
+                                                ? scheme.onPrimary
                                                 : color,
                                           ),
                                         ),

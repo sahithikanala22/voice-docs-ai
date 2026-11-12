@@ -24,7 +24,7 @@ enum TaskRecurrence { none, daily, weekly }
 /// records "done as of X", so it naturally shows unchecked again once a new
 /// day (or week) starts, without ever being deleted. See [Task.isDoneNow].
 @freezed
-class Task with _$Task {
+abstract class Task with _$Task {
   const factory Task({
     required String id,
     required String title,

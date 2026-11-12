@@ -17,3 +17,8 @@ abstract class SpeechRepository {
 
   bool get isListening;
 }
+
+/// Implemented only by engines that retain recoverable audio.
+abstract interface class SavedRecordingAcknowledgement {
+  Future<void> confirmSaved();
+}

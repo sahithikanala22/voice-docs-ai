@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/widgets/app_session_guard.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,7 +15,7 @@ class AiVoiceDocsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsControllerProvider).value;
-    final themeMode = settings?.themeMode ?? ThemeMode.system;
+    final themeMode = settings?.themeMode ?? ThemeMode.dark;
     final useDynamicColor = settings?.useDynamicColor ?? false;
     final accentColor = settings?.accentColorValue == null
         ? null
@@ -24,15 +25,58 @@ class AiVoiceDocsApp extends ConsumerWidget {
     // Wait for the persisted app-lock account to load once before building
     // the router, so the redirect logic never has to guess and the user
     // never sees a flash of app content before being bounced to signup/PIN.
-    final isCheckingAccount = ref.watch(appLockControllerProvider).isLoading;
+    final lockAsync = ref.watch(appLockControllerProvider);
+    final isCheckingAccount = lockAsync.isLoading;
 
-    return DynamicColorBuilder(
-      builder: (lightDynamic, darkDynamic) {
-        final lightScheme = useDynamicColor ? lightDynamic : null;
-        final darkScheme = useDynamicColor ? darkDynamic : null;
+    return AppSessionGuard(
+      child: DynamicColorBuilder(
+        builder: (lightDynamic, darkDynamic) {
+          final lightScheme = useDynamicColor ? lightDynamic : null;
+          final darkScheme = useDynamicColor ? darkDynamic : null;
 
-        if (isCheckingAccount) {
-          return MaterialApp(
+          if (lockAsync.hasError) {
+            return MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Protected data could not be opened. Your app remains locked.',
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            ref.invalidate(appLockControllerProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          if (isCheckingAccount) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light(
+                dynamicScheme: lightScheme,
+                seedColor: accentColor,
+                fontFamily: fontFamily,
+              ),
+              darkTheme: AppTheme.dark(
+                dynamicScheme: darkScheme,
+                seedColor: accentColor,
+                fontFamily: fontFamily,
+              ),
+              themeMode: themeMode,
+              home: const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              ),
+            );
+          }
+
+          return MaterialApp.router(
+            title: AppConstants.appName,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(
               dynamicScheme: lightScheme,
@@ -45,29 +89,10 @@ class AiVoiceDocsApp extends ConsumerWidget {
               fontFamily: fontFamily,
             ),
             themeMode: themeMode,
-            home: const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
+            routerConfig: ref.watch(appRouterProvider),
           );
-        }
-
-        return MaterialApp.router(
-          title: AppConstants.appName,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(
-            dynamicScheme: lightScheme,
-            seedColor: accentColor,
-            fontFamily: fontFamily,
-          ),
-          darkTheme: AppTheme.dark(
-            dynamicScheme: darkScheme,
-            seedColor: accentColor,
-            fontFamily: fontFamily,
-          ),
-          themeMode: themeMode,
-          routerConfig: ref.watch(appRouterProvider),
-        );
-      },
+        },
+      ),
     );
   }
 }

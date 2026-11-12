@@ -45,9 +45,20 @@ class HistoryController extends AsyncNotifier<List<HistoryItem>> {
   }
 
   Future<void> clearAll() async {
+    final deleted = await ref.read(historyRepositoryProvider).getAll();
     await ref.read(historyRepositoryProvider).clear();
     state = const AsyncData([]);
-    await ref.read(notificationServiceProvider).cancelAll();
+    for (final item in deleted) {
+      await ref
+          .read(notificationServiceProvider)
+          .cancel(reminderNotificationId(item.id));
+    }
+  }
+
+  Future<void> unfileFolder(String folderId) async {
+    final repo = ref.read(historyRepositoryProvider);
+    await repo.unfileFolder(folderId);
+    state = AsyncData(await repo.getAll());
   }
 
   Future<void> moveToFolder(String id, String? folderId) async {

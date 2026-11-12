@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,9 +7,11 @@ import 'package:ai_voice_docs/features/history/data/history_local_datasource.dar
 import 'package:ai_voice_docs/features/history/data/history_repository_impl.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late HistoryRepositoryImpl repository;
 
   setUp(() async {
+    FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     repository = HistoryRepositoryImpl(HistoryLocalDataSource(prefs));
@@ -44,5 +47,23 @@ void main() {
     await repository.clear();
 
     expect(await repository.getAll(), isEmpty);
+  });
+  test('preserves more than 200 records and concurrent additions', () async {
+    final entries = List.generate(
+      250,
+      (i) => HistoryItem.voice(text: 'entry $i', languageCode: 'en'),
+    );
+    await Future.wait(entries.map(repository.add));
+    final restored = await repository.getAll();
+    expect(restored, hasLength(250));
+    expect(restored.any((e) => e.id == entries.first.id), isTrue);
+    expect(restored.any((e) => e.id == entries.last.id), isTrue);
+  });
+  test('deleting a folder makes its entries genuinely unfiled', () async {
+    await repository.add(
+      HistoryItem.voice(text: 'keep', languageCode: 'en', folderId: 'deleted'),
+    );
+    await repository.unfileFolder('deleted');
+    expect((await repository.getAll()).single.folderId, isNull);
   });
 }

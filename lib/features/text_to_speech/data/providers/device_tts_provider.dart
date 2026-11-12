@@ -4,7 +4,7 @@ import '../../domain/tts_voice_option.dart';
 import 'tts_provider.dart';
 
 /// Default [TtsProvider]: wraps `flutter_tts`, which talks to the native OS
-/// text-to-speech engine on every platform. Free, no API key, fully offline.
+/// text-to-speech engine on every platform. No app API key; network requirements depend on the selected OS voice.
 class DeviceTtsProvider implements TtsProvider {
   DeviceTtsProvider() {
     _tts.setSpeechRate(0.48);

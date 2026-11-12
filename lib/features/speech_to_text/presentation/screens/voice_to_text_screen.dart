@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -14,23 +15,26 @@ import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/date_selector_chip.dart';
 import 'package:ai_voice_docs/core/widgets/paper_background.dart';
 import 'package:ai_voice_docs/core/widgets/folder_selector_chip.dart';
-import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
+
 import 'package:ai_voice_docs/core/widgets/language_selector_chip.dart';
 import 'package:ai_voice_docs/features/folders/presentation/providers/folder_providers.dart';
 import 'package:ai_voice_docs/features/folders/presentation/widgets/folder_picker_sheet.dart';
 import 'package:ai_voice_docs/features/history/data/history_item.dart';
-import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
-import 'package:ai_voice_docs/features/history/presentation/widgets/on_this_day_card.dart';
+
 import 'package:ai_voice_docs/features/history/presentation/widgets/share_format_sheet.dart';
 import 'package:ai_voice_docs/features/history/presentation/widgets/template_picker_sheet.dart';
 import 'package:ai_voice_docs/features/history/presentation/widgets/templated_entry_sheet.dart';
-import 'package:ai_voice_docs/features/history/presentation/widgets/todays_reminders_card.dart';
+
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
 
-import '../../domain/diarized_transcript.dart';
+import '../../domain/speech_engine.dart';
 import '../providers/speech_providers.dart';
-import '../widgets/animated_mic_button.dart';
+import '../widgets/voice_recording_panel.dart';
+import 'package:ai_voice_docs/core/widgets/brand_widgets.dart';
+import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
+import 'package:ai_voice_docs/features/history/presentation/widgets/history_detail_sheet.dart';
+import 'package:ai_voice_docs/features/history/domain/entry_summary.dart';
 import '../widgets/transcript_card.dart';
 
 /// The transcript card's fixed height — guarantees the full recognized text
@@ -38,7 +42,6 @@ import '../widgets/transcript_card.dart';
 /// cards (memories, reminders) are stacked above it. If the page's total
 /// content is taller than the screen, the page scrolls; the transcript
 /// itself never shrinks to accommodate that.
-const _transcriptCardHeight = 300.0;
 
 class VoiceToTextScreen extends ConsumerStatefulWidget {
   const VoiceToTextScreen({super.key});
@@ -56,6 +59,7 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
   /// explicitly backdated via [_pickDate]. Capped at today (never the
   /// future), same rule as the Calendar tab's "Add entry" sheet.
   DateTime _selectedDate = DateUtils.dateOnly(DateTime.now());
+  DateTime _recordingDate = DateTime.now();
 
   @override
   void initState() {
@@ -63,14 +67,21 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
     // Covers both a cold start (app wasn't running) and a tap while the app
     // is already alive in the background — the shell keeps this screen's
     // state around the whole time, so one subscription handles both cases.
-    HomeWidget.initiallyLaunchedFromHomeWidget().then(_handleWidgetUri);
+    HomeWidget.initiallyLaunchedFromHomeWidget()
+        .then(_handleWidgetUri)
+        .catchError((Object _) {});
     _widgetClickSubscription = HomeWidget.widgetClicked.listen(
       _handleWidgetUri,
+      onError: (Object _) {},
     );
   }
 
   void _handleWidgetUri(Uri? uri) {
-    if (uri?.host != 'record' || !mounted) return;
+    if (uri?.host != 'record' ||
+        !mounted ||
+        ref.read(appLockControllerProvider).value?.isUnlocked != true) {
+      return;
+    }
     // Always call go(), even if this tab is already showing — harmless when
     // already here, but necessary to bring this branch to the front of the
     // indexed stack when another tab was open when the widget was tapped.
@@ -79,7 +90,15 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
     if (!recognition.isListening) {
       ref
           .read(speechControllerProvider('home').notifier)
-          .startListening(_language.localeHint);
+          .startListening(
+            _language.localeHint,
+            languageCode: _language.code,
+            folderId: ref
+                .read(settingsControllerProvider)
+                .value
+                ?.currentFolderId,
+            timestamp: _entryTimestamp,
+          );
     }
   }
 
@@ -100,57 +119,6 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
       _selectedDate.month,
       _selectedDate.day,
       12,
-    );
-  }
-
-  /// Saves [transcript] as a new entry — but if Google Cloud's diarization
-  /// found more than one speaker, asks which one is the user first, so a
-  /// recording with someone else talking nearby doesn't save their words
-  /// mixed in with the user's own entry.
-  Future<void> _saveRecording(String transcript, String? folderId) async {
-    var finalText = transcript;
-    final speakers = speakersIn(transcript);
-    if (speakers.length > 1) {
-      final chosen = await _pickMySpeaker(speakers);
-      if (!mounted) return;
-      if (chosen != null) {
-        finalText = keepOnlySpeaker(transcript, chosen);
-      }
-    }
-
-    await ref
-        .read(historyControllerProvider.notifier)
-        .addEntry(
-          HistoryItem.voice(
-            text: finalText,
-            languageCode: _language.code,
-            folderId: folderId,
-            timestamp: _entryTimestamp,
-          ),
-        );
-  }
-
-  Future<int?> _pickMySpeaker(List<int> speakers) {
-    return showDialog<int>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Multiple speakers detected'),
-        content: const Text(
-          'This recording picked up more than one voice. Which one is you? '
-          'The others will be left out of this entry.',
-        ),
-        actions: [
-          for (final speaker in speakers)
-            TextButton(
-              onPressed: () => Navigator.pop(context, speaker),
-              child: Text('Speaker $speaker'),
-            ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Keep everyone'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -186,100 +154,163 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
     );
 
     ref.listen(speechControllerProvider('home'), (previous, next) {
+      if (previous?.isListening == true &&
+          !next.isListening &&
+          !DateUtils.isSameDay(_selectedDate, DateTime.now())) {
+        setState(() => _selectedDate = DateUtils.dateOnly(DateTime.now()));
+      }
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
         AppSnackbar.show(context, next.errorMessage!, isError: true);
       }
-      final wasListening = previous?.isListening ?? false;
-      if (wasListening &&
-          !next.isListening &&
-          next.transcript.trim().isNotEmpty) {
-        unawaited(_saveRecording(next.transcript, currentFolderId));
-        // Back to today for the next recording — picking a past date is a
-        // one-off backdate, not a standing mode this screen stays in.
-        if (!DateUtils.isSameDay(_selectedDate, DateTime.now())) {
-          setState(() => _selectedDate = DateUtils.dateOnly(DateTime.now()));
-        }
-      }
     });
 
     final scheme = Theme.of(context).colorScheme;
-
+    final active = recognition.isListening || recognition.isProcessing;
+    final recent =
+        ref.watch(historyControllerProvider).value ?? const <HistoryItem>[];
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Today'),
+        title: const BrandAppTitle(),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: LanguageSelectorChip(
-                language: _language,
-                onTap: () => _pickLanguage(context),
-              ),
-            ),
+          IconButton(
+            tooltip: 'Use a template',
+            icon: const Icon(Icons.article_outlined),
+            onPressed: active
+                ? null
+                : () => _useTemplate(context, currentFolderId),
           ),
+          const SettingsAction(),
         ],
-        bottom: const GradientAppBarUnderline(),
       ),
+      bottomNavigationBar: active
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 14),
+                child: FilledButton.icon(
+                  onPressed: recognition.isProcessing
+                      ? null
+                      : () => _toggleListening(true),
+                  icon: recognition.isProcessing
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.stop_rounded),
+                  label: Text(
+                    recognition.isProcessing
+                        ? 'Transcribing and saving…'
+                        : 'Stop recording',
+                  ),
+                ),
+              ),
+            )
+          : null,
       body: PaperBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
+          child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Capped so a growing stack of cards (memories, reminders)
-                // can't push the transcript/mic far down the page — it
-                // scrolls internally instead. Forced to full width regardless
-                // of each card's own shrink-wrap behavior, now that the outer
-                // column left-aligns instead of centering.
-                SizedBox(
-                  width: double.infinity,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 220),
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: const [
-                          OnThisDayCard(),
-                          TodaysRemindersCard(),
-                        ],
-                      ),
+            children: [
+              Text(
+                DateFormat('EEEE, d MMMM').format(DateTime.now()),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const PageIntroduction(title: "What's on your mind?"),
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton.icon(
+                    onPressed: active
+                        ? null
+                        : () => context.push('/meeting-recorder'),
+                    icon: const Icon(Icons.mic_external_on_outlined),
+                    label: const Text('Record meeting'),
+                  ),
+                  TextButton.icon(
+                    onPressed: active ? null : () => context.push('/settings'),
+                    icon: const Icon(Icons.offline_bolt_outlined),
+                    label: const Text('Whisper — Free Offline'),
+                  ),
+                  TextButton.icon(
+                    onPressed: active
+                        ? null
+                        : () => context.push('/recover-recordings'),
+                    icon: const Icon(Icons.library_music_outlined),
+                    label: const Text('Saved recordings'),
+                  ),
+                ],
+              ),
+              VoiceRecordingPanel(
+                phase: recognition.phase,
+                audioSaved: recognition.audioSaved,
+                listening: recognition.isListening,
+                processing: recognition.isProcessing,
+                level: recognition.soundLevel,
+                onTap: () => _toggleListening(recognition.isListening),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  DateSelectorChip(
+                    label: DateUtils.isSameDay(_selectedDate, DateTime.now())
+                        ? 'Today · ${DateFormat('d MMM').format(_selectedDate)}'
+                        : DateFormat('d MMM yyyy').format(_selectedDate),
+                    onTap: () {
+                      if (!active) _pickDate(context);
+                    },
+                  ),
+                  LanguageSelectorChip(
+                    language: _language,
+                    onTap: () {
+                      if (!active) _pickLanguage(context);
+                    },
+                  ),
+                  FolderSelectorChip(
+                    folderName: currentFolderName,
+                    onTap: () {
+                      if (!active) _pickFolder(context, currentFolderId);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                (settingsAsync.value?.speechEngine ?? SpeechEngine.onDevice)
+                    .privacyDescription,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              if (recognition.transcript.isNotEmpty || active) ...[
+                const SizedBox(height: 20),
+                if (!active && recognition.errorMessage == null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle_rounded,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Saved to History · ${DateFormat('d MMM').format(_recordingDate)}',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'New entry',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FolderSelectorChip(
-                      folderName: currentFolderName,
-                      onTap: () => _pickFolder(context, currentFolderId),
-                    ),
-                    DateSelectorChip(
-                      label: DateUtils.isSameDay(_selectedDate, DateTime.now())
-                          ? 'Today'
-                          : DateFormat('MMM d, yyyy').format(_selectedDate),
-                      onTap: () => _pickDate(context),
-                    ),
-                    ActionChip(
-                      avatar: const Icon(Icons.auto_stories_rounded, size: 18),
-                      label: const Text('Template'),
-                      onPressed: () => _useTemplate(context, currentFolderId),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 SizedBox(
-                  height: _transcriptCardHeight,
+                  height: 310,
                   child: TranscriptCard(
                     transcript: recognition.transcript,
                     isListening: recognition.isListening,
@@ -287,40 +318,83 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
                     onClear: () => ref
                         .read(speechControllerProvider('home').notifier)
                         .clearTranscript(),
-                    onSpeak: () => ref
-                        .read(ttsControllerProvider.notifier)
-                        .speak(recognition.transcript, _language.localeHint),
+                    onSpeak: () {
+                      final controller = ref.read(
+                        ttsControllerProvider.notifier,
+                      );
+                      if (ref.read(ttsControllerProvider)) {
+                        controller.stop();
+                      } else {
+                        controller.speak(
+                          recognition.transcript,
+                          _language.localeHint,
+                        );
+                      }
+                    },
                     onShare: () => showShareFormatSheet(
                       context,
                       HistoryItem.voice(
                         text: recognition.transcript,
                         languageCode: _language.code,
-                        timestamp: _entryTimestamp,
+                        timestamp: _recordingDate,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 28),
-                Center(
-                  child: AnimatedMicButton(
-                    isListening: recognition.isListening,
-                    soundLevel: recognition.soundLevel,
-                    onTap: () => _toggleListening(recognition.isListening),
-                  ),
+              ],
+              if (!active) ...[
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Recent recordings',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go('/history'),
+                      child: const Text('View history'),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Center(
-                  child: Text(
-                    recognition.isListening
-                        ? 'Listening… tap to stop'
-                        : 'Tap to speak',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                if (recent.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      'Your saved words will appear here.',
+                      style: TextStyle(color: scheme.onSurfaceVariant),
                     ),
                   ),
-                ),
+                for (final item in recent.take(3))
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF080A12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.graphic_eq_rounded,
+                          color: Color(0xFF42CAE8),
+                        ),
+                      ),
+                      title: Text(
+                        entrySummary(item.sourceText),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${DateFormat('d MMM · h:mm a').format(item.timestamp)} · Saved',
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => showHistoryDetailSheet(context, ref, item),
+                    ),
+                  ),
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -328,11 +402,21 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
   }
 
   Future<void> _toggleListening(bool isListening) async {
+    if (ref.read(speechControllerProvider('home')).isProcessing) return;
     final controller = ref.read(speechControllerProvider('home').notifier);
     if (isListening) {
       await controller.stopListening();
+      if (mounted) {
+        setState(() => _selectedDate = DateUtils.dateOnly(DateTime.now()));
+      }
     } else {
-      await controller.startListening(_language.localeHint);
+      _recordingDate = _entryTimestamp;
+      await controller.startListening(
+        _language.localeHint,
+        languageCode: _language.code,
+        folderId: ref.read(settingsControllerProvider).value?.currentFolderId,
+        timestamp: _recordingDate,
+      );
     }
   }
 

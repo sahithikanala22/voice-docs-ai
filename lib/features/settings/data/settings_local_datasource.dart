@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/storage/private_store.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,17 +12,19 @@ class SettingsLocalDataSource {
 
   final SharedPreferences _prefs;
 
-  AppSettings read() {
-    final raw = _prefs.getString(PrefsKeys.settings);
+  Future<AppSettings> read() async {
+    final raw = await PrivateStore(_prefs).read(PrefsKeys.settings);
     if (raw == null || raw.isEmpty) return const AppSettings();
     try {
       return AppSettings.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
-      return const AppSettings();
+      throw const FormatException('Saved settings are invalid.');
     }
   }
 
   Future<void> write(AppSettings settings) async {
-    await _prefs.setString(PrefsKeys.settings, jsonEncode(settings.toJson()));
+    await PrivateStore(
+      _prefs,
+    ).write(PrefsKeys.settings, jsonEncode(settings.toJson()));
   }
 }

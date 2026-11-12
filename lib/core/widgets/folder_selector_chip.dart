@@ -33,7 +33,14 @@ class FolderSelectorChip extends StatelessWidget {
                 color: scheme.onSurfaceVariant,
               ),
               const SizedBox(width: 8),
-              Text(folderName, style: Theme.of(context).textTheme.labelLarge),
+              Flexible(
+                child: Text(
+                  folderName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
               const SizedBox(width: 4),
               Icon(
                 Icons.keyboard_arrow_down_rounded,

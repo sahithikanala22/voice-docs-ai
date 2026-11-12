@@ -1,81 +1,215 @@
+import 'package:ai_voice_docs/core/widgets/dictation_field.dart';
+import 'package:ai_voice_docs/core/constants/supported_languages.dart';
+import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
 import 'package:ai_voice_docs/core/providers/notification_providers.dart';
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
 import 'package:ai_voice_docs/core/widgets/empty_state.dart';
 import 'package:ai_voice_docs/core/widgets/paper_background.dart';
-import 'package:ai_voice_docs/core/widgets/gradient_app_bar_underline.dart';
-
+import 'package:ai_voice_docs/core/widgets/brand_widgets.dart';
 import '../../data/task.dart';
 import '../providers/task_providers.dart';
 
-/// A simple checklist, its own tab rather than a card squeezed onto the
-/// Voice screen — add a task, check it off, it stays until you clear it.
-/// Deliberately date-less (see [Task]'s doc comment): a running list you
-/// clear as you go, not tied to the Calendar.
-class TasksScreen extends ConsumerWidget {
+enum _TaskFilter { today, upcoming, completed }
+
+class TasksScreen extends ConsumerStatefulWidget {
   const TasksScreen({super.key});
+  @override
+  ConsumerState<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends ConsumerState<TasksScreen> {
+  final _quickAdd = TextEditingController();
+  _TaskFilter _filter = _TaskFilter.today;
+  bool _addingQuick = false;
+  @override
+  void dispose() {
+    _quickAdd.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitQuickAdd() async {
+    if (_addingQuick) return;
+    setState(() => _addingQuick = true);
+    try {
+      await ref.read(recordingCoordinatorProvider).stop(tag: 'tasks-quick-add');
+      if (!mounted) return;
+      final text = _quickAdd.text.trim();
+      if (text.isEmpty) return;
+      await ref.read(taskControllerProvider.notifier).addTask(text);
+      if (!mounted) return;
+      _quickAdd.clear();
+      ref
+          .read(speechControllerProvider('tasks-quick-add').notifier)
+          .clearTranscript();
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          'Could not add this task. Try again.',
+          isError: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _addingQuick = false);
+    }
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tasks = ref.watch(taskControllerProvider).value ?? const [];
-    final pending = tasks.where((t) => !t.isDoneNow).toList();
-    final completed = tasks.where((t) => t.isDoneNow).toList();
-
+  Widget build(BuildContext context) {
+    final taskAsync = ref.watch(taskControllerProvider);
+    final tasks = taskAsync.value ?? const <Task>[];
+    final today = DateUtils.dateOnly(DateTime.now());
+    final visible = tasks
+        .where(
+          (task) => switch (_filter) {
+            _TaskFilter.completed => task.isDoneNow,
+            _TaskFilter.today =>
+              !task.isDoneNow &&
+                  (task.reminderAt == null ||
+                      !DateUtils.dateOnly(task.reminderAt!).isAfter(today)),
+            _TaskFilter.upcoming =>
+              !task.isDoneNow &&
+                  task.reminderAt != null &&
+                  DateUtils.dateOnly(task.reminderAt!).isAfter(today),
+          },
+        )
+        .toList();
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tasks'),
-        bottom: const GradientAppBarUnderline(),
+        actions: const [SettingsAction()],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'tasks-add',
         onPressed: () => _addTask(context, ref),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add task'),
       ),
       body: PaperBackground(
         child: SafeArea(
-          child: tasks.isEmpty
-              ? const EmptyState(
-                  icon: Icons.checklist_rounded,
-                  title: 'No tasks yet',
-                  subtitle:
-                      'Tap "Add task" to start a checklist you can clear as you go.',
-                )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final task in pending) _TaskRow(task: task),
-                    if (completed.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    PageIntroduction(
+                      title: 'Your daily checklist',
+                      subtitle: DateFormat(
+                        'EEEE, d MMMM',
+                      ).format(DateTime.now()),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<_TaskFilter>(
+                        segments: const [
+                          ButtonSegment(
+                            value: _TaskFilter.today,
+                            label: Text('Today'),
+                          ),
+                          ButtonSegment(
+                            value: _TaskFilter.upcoming,
+                            label: Text('Upcoming'),
+                          ),
+                          ButtonSegment(
+                            value: _TaskFilter.completed,
+                            label: Text('Completed'),
+                          ),
+                        ],
+                        showSelectedIcon: false,
+                        selected: {_filter},
+                        onSelectionChanged: (v) =>
+                            setState(() => _filter = v.first),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: DictationField(
+                            controller: _quickAdd,
+                            sessionTag: 'tasks-quick-add',
+                            localeHint: languageByCode(
+                              ref
+                                      .watch(settingsControllerProvider)
+                                      .value
+                                      ?.sourceLanguageCode ??
+                                  'en',
+                            ).localeHint,
+                            hint: 'Add a task',
+                            minLines: 1,
+                            maxLines: 2,
+                            showPrivacyDescription: false,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filled(
+                          tooltip: 'Add this task',
+                          onPressed: _addingQuick ? null : _submitQuickAdd,
+                          icon: const Icon(Icons.add_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_filter == _TaskFilter.completed &&
+                        visible.any((t) => t.recurrence == TaskRecurrence.none))
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => ref
+                              .read(taskControllerProvider.notifier)
+                              .clearCompleted(),
+                          child: const Text('Clear completed'),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: taskAsync.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : taskAsync.hasError
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'Completed',
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
+                            const Text('Your tasks could not be opened.'),
                             TextButton(
-                              onPressed: () => ref
-                                  .read(taskControllerProvider.notifier)
-                                  .clearCompleted(),
-                              child: const Text('Clear completed'),
+                              onPressed: () =>
+                                  ref.invalidate(taskControllerProvider),
+                              child: const Text('Retry'),
                             ),
                           ],
                         ),
+                      )
+                    : visible.isEmpty
+                    ? EmptyState(
+                        icon: Icons.checklist_rounded,
+                        title: tasks.isEmpty
+                            ? 'Your first task starts here'
+                            : switch (_filter) {
+                                _TaskFilter.today => 'Nothing for today',
+                                _TaskFilter.upcoming => 'No upcoming tasks',
+                                _TaskFilter.completed => 'No completed tasks',
+                              },
+                        subtitle:
+                            'Type or dictate a task above, or tap Add task.',
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
+                        children: [
+                          for (final task in visible) _TaskRow(task: task),
+                        ],
                       ),
-                      for (final task in completed) _TaskRow(task: task),
-                    ],
-                  ],
-                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -84,6 +218,7 @@ class TasksScreen extends ConsumerWidget {
   Future<void> _addTask(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController();
     var recurrence = TaskRecurrence.none;
+    var adding = false;
     var reminderEnabled = false;
     DateTime? reminderAt;
 
@@ -97,14 +232,19 @@ class TasksScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
+                DictationField(
                   controller: controller,
+                  sessionTag: 'tasks-add',
+                  localeHint: languageByCode(
+                    ref
+                            .read(settingsControllerProvider)
+                            .value
+                            ?.sourceLanguageCode ??
+                        'en',
+                  ).localeHint,
+                  hint: 'What do you need to do?',
                   autofocus: true,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'What do you need to do?',
-                  ),
-                  onSubmitted: (value) => Navigator.pop(dialogContext, value),
+                  disposeController: true,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -198,7 +338,16 @@ class TasksScreen extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, controller.text),
+              onPressed: () async {
+                if (adding) return;
+                adding = true;
+                await ref
+                    .read(recordingCoordinatorProvider)
+                    .stop(tag: 'tasks-add');
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext, controller.text);
+                }
+              },
               child: const Text('Add'),
             ),
           ],

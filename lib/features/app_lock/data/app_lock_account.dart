@@ -9,7 +9,7 @@ part 'app_lock_account.g.dart';
 /// picks up an already-unlocked phone, not from someone with full device
 /// access (e.g. anyone who could already read the phone's app storage).
 @freezed
-class AppLockAccount with _$AppLockAccount {
+abstract class AppLockAccount with _$AppLockAccount {
   const factory AppLockAccount({
     required String name,
     required String pinHash,

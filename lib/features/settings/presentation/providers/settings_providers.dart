@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ai_voice_docs/core/utils/language_key.dart';
 
 import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/core/theme/paper_style.dart';
@@ -29,11 +30,16 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     return ref.watch(settingsRepositoryProvider).load();
   }
 
-  Future<void> _update(AppSettings Function(AppSettings) transform) async {
-    final current = state.value ?? const AppSettings();
-    final updated = transform(current);
-    state = AsyncData(updated);
-    await ref.read(settingsRepositoryProvider).save(updated);
+  Future<void> _writes = Future.value();
+  Future<void> _update(AppSettings Function(AppSettings) transform) {
+    final result = _writes.then((_) async {
+      final current = state.value ?? await future;
+      final updated = transform(current);
+      await ref.read(settingsRepositoryProvider).save(updated);
+      state = AsyncData(updated);
+    });
+    _writes = result.catchError((Object _) {});
+    return result;
   }
 
   Future<void> setThemeMode(ThemeMode mode) =>
@@ -81,10 +87,13 @@ class SettingsController extends AsyncNotifier<AppSettings> {
   Future<void> setTtsVoice(String languageCode, String? voiceName) =>
       _update((s) {
         final voices = Map<String, String>.from(s.ttsVoiceByLanguage);
+        voices.removeWhere(
+          (key, _) => languageKey(key) == languageKey(languageCode),
+        );
         if (voiceName == null) {
           voices.remove(languageCode);
         } else {
-          voices[languageCode] = voiceName;
+          voices[languageKey(languageCode)] = voiceName;
         }
         return s.copyWith(ttsVoiceByLanguage: voices);
       });

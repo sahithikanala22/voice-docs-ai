@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/widgets/dictation_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -59,6 +60,7 @@ class _TemplatedEntrySheetState extends ConsumerState<_TemplatedEntrySheet> {
   late final List<TextEditingController> _controllers;
   late Language _language;
   String? _folderId;
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -177,106 +179,79 @@ class _TemplatedEntrySheetState extends ConsumerState<_TemplatedEntrySheet> {
   }
 
   Future<void> _submit() async {
-    final buffer = StringBuffer();
-    for (var i = 0; i < widget.template.prompts.length; i++) {
-      final answer = _controllers[i].text.trim();
-      if (answer.isEmpty) continue;
-      if (buffer.isNotEmpty) buffer.write('\n\n');
-      buffer.write('${widget.template.prompts[i]}\n$answer');
-    }
-    final combined = buffer.toString();
-    if (combined.isEmpty) {
-      AppSnackbar.show(
-        context,
-        'Answer at least one prompt to save.',
-        isError: true,
-      );
-      return;
-    }
+    if (_submitting) return;
+    _submitting = true;
+    try {
+      await ref.read(recordingCoordinatorProvider).stop();
+      if (!mounted) return;
+      final buffer = StringBuffer();
+      for (var i = 0; i < widget.template.prompts.length; i++) {
+        final answer = _controllers[i].text.trim();
+        if (answer.isEmpty) continue;
+        if (buffer.isNotEmpty) buffer.write('\n\n');
+        buffer.write('${widget.template.prompts[i]}\n$answer');
+      }
+      final combined = buffer.toString();
+      if (combined.isEmpty) {
+        AppSnackbar.show(
+          context,
+          'Answer at least one prompt to save.',
+          isError: true,
+        );
+        return;
+      }
 
-    final item = HistoryItem.voice(
-      text: combined,
-      languageCode: _language.code,
-      folderId: _folderId,
-      timestamp: widget.date,
-    );
-    await ref.read(historyControllerProvider.notifier).addEntry(item);
-    if (mounted) {
-      Navigator.pop(context);
-      AppSnackbar.show(context, '${widget.template.name} entry saved');
+      final item = HistoryItem.voice(
+        text: combined,
+        languageCode: _language.code,
+        folderId: _folderId,
+        timestamp: widget.date,
+      );
+      await ref.read(historyControllerProvider.notifier).addEntry(item);
+      if (mounted) {
+        Navigator.pop(context);
+        AppSnackbar.show(context, '${widget.template.name} entry saved');
+      }
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          'The entry could not be saved. Your draft has been kept.',
+          isError: true,
+        );
+      }
+    } finally {
+      _submitting = false;
     }
   }
 }
 
 /// One prompt's answer field — its own dictation session (via [sessionTag])
 /// so starting/stopping the mic on one prompt never touches another's text.
-class _PromptField extends ConsumerWidget {
+class _PromptField extends StatelessWidget {
   const _PromptField({
     required this.prompt,
     required this.controller,
     required this.sessionTag,
     required this.localeHint,
   });
-
   final String prompt;
   final TextEditingController controller;
   final String sessionTag;
   final String localeHint;
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final recognition = ref.watch(speechControllerProvider(sessionTag));
-
-    if (recognition.isListening && controller.text != recognition.transcript) {
-      controller.value = controller.value.copyWith(
-        text: recognition.transcript,
-        selection: TextSelection.collapsed(
-          offset: recognition.transcript.length,
-        ),
-      );
-    }
-
-    ref.listen(speechControllerProvider(sessionTag), (previous, next) {
-      if (next.errorMessage != null &&
-          next.errorMessage != previous?.errorMessage) {
-        AppSnackbar.show(context, next.errorMessage!, isError: true);
-      }
-    });
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(prompt, style: Theme.of(context).textTheme.labelLarge),
-        const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          maxLines: 3,
-          minLines: 2,
-          decoration: InputDecoration(
-            hintText: recognition.isListening
-                ? 'Listening…'
-                : 'Type or speak your answer',
-            suffixIcon: IconButton(
-              icon: Icon(
-                recognition.isListening
-                    ? Icons.stop_circle_rounded
-                    : Icons.mic_rounded,
-              ),
-              tooltip: recognition.isListening ? 'Stop' : 'Dictate',
-              onPressed: () => _toggleListening(ref, recognition.isListening),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Future<void> _toggleListening(WidgetRef ref, bool isListening) async {
-    final notifier = ref.read(speechControllerProvider(sessionTag).notifier);
-    if (isListening) {
-      await notifier.stopListening();
-    } else {
-      await notifier.startListening(localeHint);
-    }
-  }
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(prompt, style: Theme.of(context).textTheme.labelLarge),
+      const SizedBox(height: 6),
+      DictationField(
+        controller: controller,
+        sessionTag: sessionTag,
+        localeHint: localeHint,
+        hint: 'Type or speak your answer',
+        minLines: 2,
+      ),
+    ],
+  );
 }

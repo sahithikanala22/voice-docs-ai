@@ -1,3 +1,5 @@
+import 'package:ai_voice_docs/features/speech_to_text/domain/speech_engine.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,12 +52,14 @@ class _AddEntrySheet extends ConsumerStatefulWidget {
 }
 
 class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
+  late final Future<void> Function() _stopRecording;
   final _formKey = GlobalKey<FormState>();
   final _sourceTextController = TextEditingController();
 
   late DateTime _date;
   late Language _sourceLanguage;
   String? _folderId;
+  bool _submitting = false;
   bool _initializedFromSettings = false;
   bool _reminderEnabled = false;
   DateTime? _reminderAt;
@@ -63,6 +67,8 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   @override
   void initState() {
     super.initState();
+    final owner = ref.read(recordingCoordinatorProvider);
+    _stopRecording = () => owner.stop(tag: _sourceSessionTag);
     final now = TimeOfDay.now();
     // Same-day entries keep the current time; backdated ones default to
     // noon rather than implying a specific (unknowable) time of day.
@@ -79,6 +85,7 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
 
   @override
   void dispose() {
+    unawaited(_stopRecording());
     _sourceTextController.dispose();
     super.dispose();
   }
@@ -99,19 +106,13 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
       speechControllerProvider(_sourceSessionTag),
     );
 
-    // Mirror the live transcript into the text field while listening, same
-    // pattern as the Voice tab's field.
-    if (sourceRecognition.isListening &&
-        _sourceTextController.text != sourceRecognition.transcript) {
-      _sourceTextController.value = _sourceTextController.value.copyWith(
-        text: sourceRecognition.transcript,
-        selection: TextSelection.collapsed(
-          offset: sourceRecognition.transcript.length,
-        ),
-      );
-    }
-
     ref.listen(speechControllerProvider(_sourceSessionTag), (previous, next) {
+      if (next.transcript != previous?.transcript) {
+        _sourceTextController.value = TextEditingValue(
+          text: next.transcript,
+          selection: TextSelection.collapsed(offset: next.transcript.length),
+        );
+      }
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
         AppSnackbar.show(context, next.errorMessage!, isError: true);
@@ -161,7 +162,14 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                 maxLines: 4,
                 minLines: 2,
                 decoration: InputDecoration(
-                  hintText: sourceRecognition.isListening
+                  helperText:
+                      (settingsAsync.value?.speechEngine ??
+                              SpeechEngine.onDevice)
+                          .privacyDescription,
+                  helperMaxLines: 8,
+                  hintText: sourceRecognition.isProcessing
+                      ? 'Finishing dictation…'
+                      : sourceRecognition.isListening
                       ? 'Listening…'
                       : 'Type or speak the text',
                   suffixIcon: IconButton(
@@ -171,8 +179,9 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
                           : Icons.mic_rounded,
                     ),
                     tooltip: sourceRecognition.isListening ? 'Stop' : 'Dictate',
-                    onPressed: () =>
-                        _toggleListening(sourceRecognition.isListening),
+                    onPressed: sourceRecognition.isProcessing
+                        ? null
+                        : () => _toggleListening(sourceRecognition.isListening),
                   ),
                 ),
                 validator: (value) => (value == null || value.trim().isEmpty)
@@ -327,44 +336,60 @@ class _AddEntrySheetState extends ConsumerState<_AddEntrySheet> {
   }
 
   Future<void> _submit() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_submitting) return;
+    _submitting = true;
+    try {
+      await _stopRecording();
+      if (!mounted) return;
+      if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    if (_date.isAfter(DateTime.now())) {
-      AppSnackbar.show(
-        context,
-        'Entries can only be added for today or a past date',
-        isError: true,
+      if (_date.isAfter(DateTime.now())) {
+        AppSnackbar.show(
+          context,
+          'Entries can only be added for today or a past date',
+          isError: true,
+        );
+        return;
+      }
+
+      if (_reminderEnabled &&
+          _reminderAt != null &&
+          !_reminderAt!.isAfter(DateTime.now())) {
+        AppSnackbar.show(
+          context,
+          'Reminder time must be in the future',
+          isError: true,
+        );
+        return;
+      }
+      final reminderAt = _reminderEnabled ? _reminderAt : null;
+
+      final item = HistoryItem.voice(
+        text: _sourceTextController.text.trim(),
+        languageCode: _sourceLanguage.code,
+        folderId: _folderId,
+        timestamp: _date,
+        reminderAt: reminderAt,
       );
-      return;
-    }
 
-    if (_reminderEnabled &&
-        _reminderAt != null &&
-        !_reminderAt!.isAfter(DateTime.now())) {
-      AppSnackbar.show(
-        context,
-        'Reminder time must be in the future',
-        isError: true,
-      );
-      return;
-    }
-    final reminderAt = _reminderEnabled ? _reminderAt : null;
-
-    final item = HistoryItem.voice(
-      text: _sourceTextController.text.trim(),
-      languageCode: _sourceLanguage.code,
-      folderId: _folderId,
-      timestamp: _date,
-      reminderAt: reminderAt,
-    );
-
-    await ref.read(historyControllerProvider.notifier).addEntry(item);
-    if (mounted) {
-      Navigator.pop(context);
-      AppSnackbar.show(
-        context,
-        'Entry added to ${DateFormat('MMM d').format(_date)}',
-      );
+      await ref.read(historyControllerProvider.notifier).addEntry(item);
+      if (mounted) {
+        Navigator.pop(context);
+        AppSnackbar.show(
+          context,
+          'Entry added to ${DateFormat('MMM d').format(_date)}',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        AppSnackbar.show(
+          context,
+          'The entry could not be saved. Your draft has been kept.',
+          isError: true,
+        );
+      }
+    } finally {
+      _submitting = false;
     }
   }
 }

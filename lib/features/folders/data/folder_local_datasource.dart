@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/storage/private_store.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,8 +16,8 @@ class FolderLocalDataSource {
 
   final SharedPreferences _prefs;
 
-  List<Folder> readAll() {
-    final raw = _prefs.getString(PrefsKeys.folders);
+  Future<List<Folder>> readAll() async {
+    final raw = await PrivateStore(_prefs).read(PrefsKeys.folders);
     if (raw == null || raw.isEmpty) return [];
     try {
       final decoded = jsonDecode(raw) as List<dynamic>;
@@ -31,6 +32,6 @@ class FolderLocalDataSource {
 
   Future<void> writeAll(List<Folder> folders) async {
     final encoded = jsonEncode(folders.map((e) => e.toJson()).toList());
-    await _prefs.setString(PrefsKeys.folders, encoded);
+    await PrivateStore(_prefs).write(PrefsKeys.folders, encoded);
   }
 }

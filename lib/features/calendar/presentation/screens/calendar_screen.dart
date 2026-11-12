@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ai_voice_docs/core/widgets/brand_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -49,6 +50,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       appBar: AppBar(
         title: const Text('Calendar'),
         actions: [
+          const SettingsAction(),
           IconButton(
             icon: Icon(
               _showYear
@@ -67,6 +69,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ).isAfter(DateUtils.dateOnly(DateTime.now()))
           ? null
           : FloatingActionButton.extended(
+              heroTag: 'calendar-add',
               onPressed: () =>
                   showAddEntrySheet(context, initialDate: _selectedDay),
               tooltip: 'Add entry for this day',
@@ -401,7 +404,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                 ),
                                 if (canAddToSelectedDay)
                                   Padding(
-                                    padding: const EdgeInsets.only(bottom: 16),
+                                    padding: const EdgeInsets.only(bottom: 88),
                                     child: TextButton.icon(
                                       onPressed: () => showAddEntrySheet(
                                         context,

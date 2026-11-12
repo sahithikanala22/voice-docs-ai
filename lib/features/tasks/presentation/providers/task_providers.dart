@@ -91,8 +91,9 @@ class TaskController extends AsyncNotifier<List<Task>> {
     // the plugin schedules the next matching occurrence regardless of
     // whether the anchor moment itself has already passed.
     if (task.recurrence == TaskRecurrence.none &&
-        !reminderAt.isAfter(DateTime.now()))
+        !reminderAt.isAfter(DateTime.now())) {
       return;
+    }
 
     final notificationService = ref.read(notificationServiceProvider);
     final granted = await notificationService.requestPermission();

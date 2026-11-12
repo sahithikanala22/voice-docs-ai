@@ -27,9 +27,15 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Voice Docs AI uses the microphone to transcribe and translate your speech.</string>
+	<string>Voice Docs AI uses the microphone to transcribe your speech into private journal entries and task drafts.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Voice Docs AI uses speech recognition to convert what you say into text.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Take a profile photo or choose a diary background.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Choose a profile photo or diary background from your photo library.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Use Face ID to unlock your private entries and verify PIN recovery.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

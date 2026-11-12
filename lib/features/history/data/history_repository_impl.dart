@@ -1,50 +1,57 @@
-import 'package:ai_voice_docs/core/constants/app_constants.dart';
-
 import '../domain/history_repository.dart';
 import 'history_item.dart';
 import 'history_local_datasource.dart';
 
 class HistoryRepositoryImpl implements HistoryRepository {
   HistoryRepositoryImpl(this._dataSource);
-
   final HistoryLocalDataSource _dataSource;
-
-  @override
-  Future<List<HistoryItem>> getAll() async => _dataSource.readAll();
-
-  @override
-  Future<void> add(HistoryItem item) async {
-    final items = _dataSource.readAll()..insert(0, item);
-    final trimmed = items.length > AppConstants.maxHistoryItems
-        ? items.sublist(0, AppConstants.maxHistoryItems)
-        : items;
-    await _dataSource.writeAll(trimmed);
+  Future<void> _writes = Future.value();
+  Future<void> _mutate(void Function(List<HistoryItem>) change) {
+    final result = _writes.then((_) async {
+      final items = await _dataSource.readAll();
+      change(items);
+      await _dataSource.writeAll(items);
+    });
+    _writes = result.catchError((Object _) {});
+    return result;
   }
 
   @override
-  Future<void> remove(String id) async {
-    final items = _dataSource.readAll()..removeWhere((e) => e.id == id);
-    await _dataSource.writeAll(items);
+  Future<List<HistoryItem>> getAll() async {
+    await _writes;
+    return _dataSource.readAll();
   }
 
   @override
-  Future<void> clear() async => _dataSource.writeAll([]);
-
+  Future<void> add(HistoryItem item) => _mutate((items) {
+    // Recording recovery reuses a stable ID, including after a crash
+    // between saving history and acknowledging the recording metadata.
+    if (!items.any((existing) => existing.id == item.id)) items.insert(0, item);
+  });
   @override
-  Future<void> updateFolder(String id, String? folderId) async {
-    final items = _dataSource.readAll();
+  Future<void> remove(String id) =>
+      _mutate((items) => items.removeWhere((e) => e.id == id));
+  @override
+  Future<void> clear() => _mutate((items) => items.clear());
+  @override
+  Future<void> updateFolder(String id, String? folderId) => _mutate((items) {
     final index = items.indexWhere((e) => e.id == id);
-    if (index == -1) return;
-    items[index] = items[index].copyWith(folderId: folderId);
-    await _dataSource.writeAll(items);
-  }
-
+    if (index >= 0) items[index] = items[index].copyWith(folderId: folderId);
+  });
   @override
-  Future<void> updateReminder(String id, DateTime? reminderAt) async {
-    final items = _dataSource.readAll();
-    final index = items.indexWhere((e) => e.id == id);
-    if (index == -1) return;
-    items[index] = items[index].copyWith(reminderAt: reminderAt);
-    await _dataSource.writeAll(items);
-  }
+  Future<void> unfileFolder(String folderId) => _mutate((items) {
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].folderId == folderId) {
+        items[i] = items[i].copyWith(folderId: null);
+      }
+    }
+  });
+  @override
+  Future<void> updateReminder(String id, DateTime? reminderAt) =>
+      _mutate((items) {
+        final index = items.indexWhere((e) => e.id == id);
+        if (index >= 0) {
+          items[index] = items[index].copyWith(reminderAt: reminderAt);
+        }
+      });
 }

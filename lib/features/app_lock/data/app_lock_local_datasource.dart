@@ -1,3 +1,4 @@
+import 'package:ai_voice_docs/core/storage/private_store.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,21 +12,20 @@ class AppLockLocalDataSource {
 
   final SharedPreferences _prefs;
 
-  AppLockAccount? read() {
-    final raw = _prefs.getString(PrefsKeys.appLockAccount);
+  Future<AppLockAccount?> read() async {
+    final raw = await PrivateStore(_prefs).read(PrefsKeys.appLockAccount);
     if (raw == null || raw.isEmpty) return null;
     try {
       return AppLockAccount.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
-      return null;
+      throw const FormatException('Saved app-lock account is invalid.');
     }
   }
 
   Future<void> write(AppLockAccount account) async {
-    await _prefs.setString(
-      PrefsKeys.appLockAccount,
-      jsonEncode(account.toJson()),
-    );
+    await PrivateStore(
+      _prefs,
+    ).write(PrefsKeys.appLockAccount, jsonEncode(account.toJson()));
   }
 
   Future<void> clear() async {

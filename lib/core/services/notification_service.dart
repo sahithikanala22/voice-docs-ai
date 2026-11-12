@@ -8,14 +8,14 @@ import 'package:timezone/timezone.dart' as tz;
 /// singleton (rather than a per-widget object) since there is exactly one
 /// OS-level notification channel for the whole app to manage.
 class NotificationService {
-  NotificationService._();
+  NotificationService({FlutterLocalNotificationsPlugin? plugin})
+    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
-  static final NotificationService instance = NotificationService._();
+  static final NotificationService instance = NotificationService();
 
   static const _reminderChannelId = 'entry_reminders';
 
-  final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
 
   Future<void> initialize() async {
@@ -34,7 +34,14 @@ class NotificationService {
       '@mipmap/ic_launcher',
     );
     await _plugin.initialize(
-      const InitializationSettings(android: androidSettings),
+      const InitializationSettings(
+        android: androidSettings,
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
+      ),
     );
 
     await _plugin
@@ -62,7 +69,19 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    if (androidImpl == null) return true;
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+    if (ios != null) {
+      return await ios.requestPermissions(
+            alert: true,
+            badge: true,
+            sound: true,
+          ) ??
+          false;
+    }
+    if (androidImpl == null) return false;
     final granted = await androidImpl.requestNotificationsPermission();
     return granted ?? true;
   }
@@ -105,6 +124,12 @@ class NotificationService {
               'Reminders you set on calendar and history entries',
           importance: Importance.high,
           priority: Priority.high,
+          visibility: NotificationVisibility.private,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
         ),
       ),
       androidScheduleMode: canExact

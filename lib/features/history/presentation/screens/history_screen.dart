@@ -1,4 +1,6 @@
+import 'package:ai_voice_docs/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:ai_voice_docs/core/widgets/brand_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:ai_voice_docs/core/widgets/app_snackbar.dart';
@@ -24,6 +26,7 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final _searchController = TextEditingController();
   String _query = '';
+  int _visibleCount = AppConstants.historyPageSize;
 
   /// Which folder the list is filtered to: `null` = All, `''` = Unfiled,
   /// otherwise a folder id.
@@ -71,6 +74,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           : AppBar(
               title: const Text('History'),
               actions: [
+                const SettingsAction(),
                 IconButton(
                   icon: const Icon(Icons.checklist_rounded),
                   tooltip: 'Select',
@@ -90,13 +94,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               children: [
-                const SizedBox(height: 4),
+                const PageIntroduction(
+                  title: 'Saved voice transcripts',
+                  subtitle: 'Search and revisit your recorded thoughts.',
+                ),
                 TextField(
                   controller: _searchController,
-                  onChanged: (v) =>
-                      setState(() => _query = v.trim().toLowerCase()),
+                  onChanged: (v) => setState(() {
+                    _query = v.trim().toLowerCase();
+                    _visibleCount = AppConstants.historyPageSize;
+                  }),
                   decoration: const InputDecoration(
-                    hintText: 'Search history',
+                    hintText: 'Search recordings',
                     prefixIcon: Icon(Icons.search_rounded),
                   ),
                 ),
@@ -149,7 +158,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         final matchesFolder =
                             _filterFolderId == null ||
                             (_filterFolderId == ''
-                                ? e.folderId == null
+                                ? folderByIdOrNull(folders, e.folderId) == null
                                 : e.folderId == _filterFolderId);
                         return matchesQuery && matchesFolder;
                       }).toList();
@@ -163,8 +172,24 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       }
 
                       return ListView.builder(
-                        itemCount: filtered.length,
+                        itemCount: filtered.length > _visibleCount
+                            ? _visibleCount + 1
+                            : filtered.length,
                         itemBuilder: (context, index) {
+                          if (index == _visibleCount) {
+                            return Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: OutlinedButton(
+                                onPressed: () => setState(
+                                  () => _visibleCount +=
+                                      AppConstants.historyPageSize,
+                                ),
+                                child: Text(
+                                  'Load more (${filtered.length - _visibleCount} remaining)',
+                                ),
+                              ),
+                            );
+                          }
                           final item = filtered[index];
                           return HistoryTile(
                             item: item,
