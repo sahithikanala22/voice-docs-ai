@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:ai_voice_docs/core/theme/app_theme.dart';
 import '../../domain/recording_phase.dart';
 
 class VoiceRecordingPanel extends StatefulWidget {
@@ -59,6 +58,7 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final active = widget.listening || widget.processing;
     final minutes = (_seconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (_seconds % 60).toString().padLeft(2, '0');
@@ -71,7 +71,7 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
           ? 'Stop recording'
           : 'Start recording',
       child: Material(
-        color: const Color(0xFF080A12),
+        color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(26),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -81,7 +81,7 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: const Color(0xFF2B3850)),
+              border: Border.all(color: scheme.outlineVariant),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -95,7 +95,7 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
                             ? Icons.auto_awesome_outlined
                             : Icons.circle,
                         size: 12,
-                        color: const Color(0xFF42CAE8),
+                        color: scheme.primary,
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -108,8 +108,8 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
                                 _ => 'FINISHING',
                               }
                             : 'RECORDING',
-                        style: const TextStyle(
-                          color: Color(0xFFB5BED1),
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1.2,
@@ -122,8 +122,8 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
                   if (widget.listening)
                     Text(
                       '$minutes:$seconds',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: scheme.onSurface,
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
                       ),
@@ -135,21 +135,27 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
                       painter: _WavePainter(
                         level: widget.level,
                         listening: widget.listening,
+                        color: scheme.primary,
                       ),
                     ),
                   ),
                 ] else ...[
-                  Image.asset(
-                    'assets/icon/icon.png',
-                    width: 148,
-                    height: 148,
-                    excludeFromSemantics: true,
-                    fit: BoxFit.contain,
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.mic_rounded,
+                      size: 42,
+                      color: scheme.onPrimaryContainer,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 20),
                 ],
                 if (widget.processing) ...[
-                  const CircularProgressIndicator(color: Color(0xFFA794FF)),
+                  CircularProgressIndicator(color: scheme.primary),
                   const SizedBox(height: 14),
                 ],
                 Text(
@@ -161,8 +167,8 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
                       ? 'Listening to your thoughts'
                       : 'Tap to record',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: scheme.onSurface,
                     fontSize: 23,
                     fontWeight: FontWeight.w700,
                   ),
@@ -177,8 +183,8 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
                       ? 'Tap Stop when you are finished.'
                       : 'Your voice. Your words. Saved after Stop.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFBCC5D9),
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
                     fontSize: 13,
                   ),
                 ),
@@ -192,9 +198,14 @@ class _VoiceRecordingPanelState extends State<VoiceRecordingPanel> {
 }
 
 class _WavePainter extends CustomPainter {
-  _WavePainter({required this.level, required this.listening});
+  _WavePainter({
+    required this.level,
+    required this.listening,
+    required this.color,
+  });
   final double level;
   final bool listening;
+  final Color color;
   @override
   void paint(Canvas canvas, Size size) {
     final amplitude = listening ? (level.abs() / 10).clamp(.15, 1.0) : .12;
@@ -207,11 +218,7 @@ class _WavePainter extends CustomPainter {
       final envelope = math.sin(math.pi * i / (count - 1));
       final wave = (.25 + .75 * math.sin(i * 1.7).abs()) * envelope;
       final height = 3 + wave * amplitude * (size.height - 10);
-      paint.color =
-          AppTheme.brandRays[(i * AppTheme.brandRays.length ~/ count).clamp(
-            0,
-            AppTheme.brandRays.length - 1,
-          )];
+      paint.color = color;
       canvas.drawLine(
         Offset(x, (size.height - height) / 2),
         Offset(x, (size.height + height) / 2),
@@ -222,5 +229,7 @@ class _WavePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WavePainter oldDelegate) =>
-      oldDelegate.level != level || oldDelegate.listening != listening;
+      oldDelegate.level != level ||
+      oldDelegate.listening != listening ||
+      oldDelegate.color != color;
 }

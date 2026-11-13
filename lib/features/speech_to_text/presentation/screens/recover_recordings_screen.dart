@@ -22,6 +22,7 @@ import '../../domain/recording_phase.dart';
 import '../../domain/speech_engine.dart';
 import '../providers/speech_providers.dart';
 import '../providers/whisper_providers.dart';
+import 'package:ai_voice_docs/features/library/presentation/providers/library_providers.dart';
 
 class RecoverRecordingsScreen extends ConsumerStatefulWidget {
   const RecoverRecordingsScreen({super.key});
@@ -81,6 +82,7 @@ class _RecoveryState extends ConsumerState<RecoverRecordingsScreen>
   }
 
   void _refresh() {
+    ref.invalidate(savedRecordingsProvider);
     if (mounted) {
       setState(() {
         _items = _store.list();
@@ -539,6 +541,7 @@ class _RecoveryState extends ConsumerState<RecoverRecordingsScreen>
             .addEntry(
               HistoryItem(
                 id: item.transcriptId,
+                recordingId: item.id,
                 sourceText: edited,
                 sourceLanguageCode: item.locale.split('-').first,
                 timestamp: date,

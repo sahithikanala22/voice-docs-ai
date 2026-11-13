@@ -9,12 +9,15 @@ import '../../data/providers/on_device_speech_provider.dart';
 import '../../data/providers/durable_recording_provider.dart';
 import '../../data/providers/whisper_speech_provider.dart';
 import 'whisper_providers.dart';
+import 'recording_playback_providers.dart';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
 import '../../data/providers/speech_provider.dart';
 import '../../data/repositories/speech_repository_impl.dart';
 import '../../domain/recognition_state.dart';
 import '../../domain/recording_coordinator.dart';
 import '../../domain/speech_engine.dart';
 import '../../domain/speech_repository.dart';
+import 'package:ai_voice_docs/features/library/presentation/providers/library_providers.dart';
 
 final speechProviderImplProvider = Provider<SpeechProvider>((ref) {
   final (engine, apiKey) = ref.watch(
@@ -81,6 +84,12 @@ class SpeechController extends FamilyNotifier<RecognitionState, String> {
     if (_starting || state.isListening || state.isProcessing) return;
     _starting = true;
     try {
+      if (ref.exists(recordingPlaybackProvider)) {
+        await ref.read(recordingPlaybackProvider).stop();
+      }
+      if (ref.exists(ttsControllerProvider)) {
+        await ref.read(ttsControllerProvider.notifier).stop();
+      }
       final history = ref.read(historyControllerProvider.notifier);
       final owner = ref.read(recordingCoordinatorProvider);
       return await ref
@@ -94,7 +103,11 @@ class SpeechController extends FamilyNotifier<RecognitionState, String> {
                 ? ref.read(meetingSpeechRepositoryProvider)
                 : null,
             onChanged: (next) {
-              if (!_disposed) state = next;
+              if (_disposed) return;
+              state = next;
+              if (!next.isListening && !next.isProcessing) {
+                ref.invalidate(savedRecordingsProvider);
+              }
             },
             save: arg == 'home'
                 ? (text) {
@@ -110,6 +123,7 @@ class SpeechController extends FamilyNotifier<RecognitionState, String> {
                             )
                           : HistoryItem(
                               id: 'recovered-cloud-$id',
+                              recordingId: id,
                               sourceText: text,
                               sourceLanguageCode:
                                   languageCode ?? localeCode.split('-').first,

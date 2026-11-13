@@ -375,6 +375,10 @@ void main() {
         await provider().transcribeRetained(item),
         'before boundary after',
       );
+      final timed = (await recordings.get(item.id)).segments;
+      expect(timed.map((s) => s.text), ['before', 'boundary', 'after']);
+      expect(timed[1].start, const Duration(milliseconds: 29800));
+      expect(timed[2].start, const Duration(seconds: 31));
     },
   );
 

@@ -127,9 +127,9 @@ void main() {
       },
     );
 
-    test(
+    testWidgets(
       'a replacement provider receives completion and error callbacks',
-      () async {
+      (tester) async {
         final speech = stt.SpeechToText.withMethodChannel();
         final old = OnDeviceSpeechProvider(speech: speech);
         await old.startListening(
@@ -151,7 +151,7 @@ void main() {
             onError: errors.add,
           );
           speech.statusListener!('done');
-          await Future<void>.delayed(const Duration(milliseconds: 20));
+          await tester.pump(const Duration(milliseconds: 20));
           expect(calls.where((call) => call == 'listen'), hasLength(3));
           expect(calls.where((call) => call == 'initialize'), hasLength(1));
           speech.errorListener!(
@@ -165,9 +165,9 @@ void main() {
     );
   });
 
-  test(
+  testWidgets(
     'duplicate finals and stale callbacks cannot duplicate transcript segments',
-    () async {
+    (tester) async {
       final native = NativeFake();
       final text = <String>[];
       final provider = OnDeviceSpeechProvider(
@@ -183,7 +183,7 @@ void main() {
       old(words('first'));
       old(words('first'));
       expect(text, ['first']);
-      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await tester.pump(const Duration(milliseconds: 10));
       old(words('stale duplicate'));
       native.result!(words('second', finalResult: false));
       expect(text.last, 'first second');
@@ -196,7 +196,9 @@ void main() {
       expect(text.length, count);
     },
   );
-  test('a partial segment is preserved before a no-match restart', () async {
+  testWidgets('a partial segment is preserved before a no-match restart', (
+    tester,
+  ) async {
     final native = NativeFake();
     final text = <String>[];
     final provider = OnDeviceSpeechProvider(
@@ -210,14 +212,14 @@ void main() {
     );
     native.result!(words('before pause', finalResult: false));
     native.error!(SpeechRecognitionError('error_no_match', false));
-    await Future<void>.delayed(const Duration(milliseconds: 10));
+    await tester.pump(const Duration(milliseconds: 10));
     native.result!(words('after pause'));
     expect(text.last, 'before pause after pause');
     await provider.cancel();
   });
-  test(
+  testWidgets(
     'empty recognition failures have bounded restarts and cancel pending timers',
-    () async {
+    (tester) async {
       final native = NativeFake();
       final errors = <String>[];
       final provider = OnDeviceSpeechProvider(
@@ -232,14 +234,14 @@ void main() {
       );
       for (var i = 0; i < 5; i++) {
         native.error!(SpeechRecognitionError('error_speech_timeout', false));
-        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await tester.pump(const Duration(milliseconds: 20));
       }
       expect(errors, hasLength(1));
       expect(errors.single, contains('repeatedly ended'));
       expect(native.listens, 3);
       await provider.cancel();
       final count = native.listens;
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await tester.pump(const Duration(milliseconds: 30));
       expect(native.listens, count);
     },
   );

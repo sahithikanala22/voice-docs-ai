@@ -4,6 +4,9 @@ import 'package:ai_voice_docs/features/speech_to_text/presentation/screens/recov
 import 'package:ai_voice_docs/core/privacy/privacy_policy_screen.dart';
 import 'package:flutter/widgets.dart';
 import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/recording_playback_providers.dart';
+import 'package:ai_voice_docs/features/today/presentation/screens/today_screen.dart';
+import 'package:ai_voice_docs/features/library/presentation/screens/library_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -40,11 +43,14 @@ class _AppLockRefreshNotifier extends ChangeNotifier {
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     observers: [
-      _RecordingNavigationObserver(
-        () => ref
+      _RecordingNavigationObserver(() async {
+        await ref
             .read(recordingCoordinatorProvider)
-            .stop(cancelTranscription: true),
-      ),
+            .stop(cancelTranscription: true);
+        if (ref.exists(recordingPlaybackProvider)) {
+          await ref.read(recordingPlaybackProvider).stop();
+        }
+      }),
     ],
     initialLocation: '/',
     refreshListenable: _AppLockRefreshNotifier(ref),
@@ -66,6 +72,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/record',
+        builder: (context, state) =>
+            VoiceToTextScreen(autoStart: state.extra == true),
+      ),
+      GoRoute(
+        path: '/calendar',
+        builder: (context, state) => const CalendarScreen(),
+      ),
+      GoRoute(
+        path: '/history',
+        builder: (context, state) => const HistoryScreen(),
+      ),
       GoRoute(
         path: '/meeting-recorder',
         builder: (context, state) => const MeetingRecordingScreen(),
@@ -94,7 +113,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/',
-                builder: (context, state) => const VoiceToTextScreen(),
+                builder: (context, state) => const TodayScreen(),
               ),
             ],
           ),
@@ -109,14 +128,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/calendar',
-                builder: (context, state) => const CalendarScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/tasks',
                 builder: (context, state) => const TasksScreen(),
               ),
@@ -125,8 +136,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/history',
-                builder: (context, state) => const HistoryScreen(),
+                path: '/library',
+                builder: (context, state) => const LibraryScreen(),
               ),
             ],
           ),

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ai_voice_docs/core/storage/private_store.dart';
 import '../domain/recording_phase.dart';
+import '../domain/transcript_segment.dart';
 
 class PendingRecording {
   const PendingRecording({
@@ -22,6 +23,7 @@ class PendingRecording {
     this.folderId,
     this.entryDate,
     this.transcriptionBackend = 'googleCloud',
+    this.segments = const [],
   });
   final String id, locale, transcript;
   final DateTime createdAt;
@@ -31,6 +33,7 @@ class PendingRecording {
   final String? historyId, error, folderId;
   final DateTime? entryDate;
   final String transcriptionBackend;
+  final List<TranscriptSegment> segments;
   Duration get duration => Duration(milliseconds: byteLength * 1000 ~/ 32000);
   String get transcriptId => 'recovered-cloud-$id';
 }
@@ -163,6 +166,10 @@ class PendingRecordingStore {
           : DateTime.parse(data['entryDate'] as String),
       transcriptionBackend:
           data['transcriptionBackend'] as String? ?? 'googleCloud',
+      segments: [
+        for (final segment in (data['segments'] as List? ?? []))
+          TranscriptSegment.fromJson(Map<String, dynamic>.from(segment as Map)),
+      ],
     );
   }
 
@@ -382,17 +389,29 @@ class PendingRecordingStore {
     return get(item.id);
   }
 
-  Future<void> saveChunk(String id, int index, String text) =>
-      _change(id, (data) {
-        final chunks = Map<String, dynamic>.from(data['chunks'] as Map? ?? {});
-        chunks[index.toString()] = text;
-        data['chunks'] = chunks;
-        final sorted = chunks.keys.map(int.parse).toList()..sort();
-        data['transcript'] = sorted
-            .map((i) => chunks['$i'] as String)
-            .where((s) => s.isNotEmpty)
-            .join(' ');
-      });
+  Future<void> saveChunk(
+    String id,
+    int index,
+    String text, {
+    List<TranscriptSegment> segments = const [],
+  }) => _change(id, (data) {
+    final chunks = Map<String, dynamic>.from(data['chunks'] as Map? ?? {});
+    chunks[index.toString()] = text;
+    data['chunks'] = chunks;
+    final sorted = chunks.keys.map(int.parse).toList()..sort();
+    data['transcript'] = sorted
+        .map((i) => chunks['$i'] as String)
+        .where((s) => s.isNotEmpty)
+        .join(' ');
+    final timedChunks = Map<String, dynamic>.from(
+      data['timedChunks'] as Map? ?? {},
+    );
+    timedChunks['$index'] = segments.map((s) => s.toJson()).toList();
+    data['timedChunks'] = timedChunks;
+    data['segments'] = [
+      for (final i in sorted) ...(timedChunks['$i'] as List? ?? []),
+    ];
+  });
 
   /// Checkpoints from different engines/chunk layouts must never be mixed.
   /// Keep each attempt so switching back can resume its own completed chunks.
@@ -407,10 +426,14 @@ class PendingRecordingStore {
       attempts[current] = {
         'chunks': data['chunks'],
         'transcript': data['transcript'],
+        'timedChunks': data['timedChunks'],
+        'segments': data['segments'],
       };
       final selected = attempts[backend] as Map?;
       data['chunks'] = selected?['chunks'] ?? <String, String>{};
       data['transcript'] = selected?['transcript'] ?? '';
+      data['timedChunks'] = selected?['timedChunks'] ?? <String, dynamic>{};
+      data['segments'] = selected?['segments'] ?? [];
       data['transcriptionAttempts'] = attempts;
       data['transcriptionBackend'] = backend;
       data['phase'] = 'interrupted';

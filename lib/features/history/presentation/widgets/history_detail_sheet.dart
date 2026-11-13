@@ -16,6 +16,10 @@ import '../../data/history_pdf_generator.dart';
 import '../../data/history_word_generator.dart';
 import '../providers/history_providers.dart';
 import 'share_format_sheet.dart';
+import '../../domain/entry_summary.dart';
+import 'package:ai_voice_docs/features/library/domain/library_entry.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/widgets/recording_audio_card.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/recording_playback_providers.dart';
 
 /// The full-detail bottom sheet for one history entry — date/folder, the
 /// transcript text, and the move/reminder/share/play actions. Shared by
@@ -38,8 +42,9 @@ void showHistoryDetailSheet(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
                 children: [
                   Text(
                     DateFormat('MMM d, yyyy · h:mm a').format(item.timestamp),
@@ -82,6 +87,12 @@ void showHistoryDetailSheet(
                 ],
               ),
               const SizedBox(height: 12),
+              Text(
+                entrySummary(item.sourceText),
+                style: Theme.of(sheetContext).textTheme.headlineSmall,
+              ),
+              if (recordingIdFor(item) case final String recordingId)
+                RecordingAudioCard(recordingId: recordingId),
               if (item.reminderAt != null) ...[
                 Row(
                   children: [
@@ -115,22 +126,38 @@ void showHistoryDetailSheet(
                 style: Theme.of(sheetContext).textTheme.labelLarge,
               ),
               const SizedBox(height: 6),
-              Text(
+              SelectableText(
                 item.sourceText,
                 style: Theme.of(sheetContext).textTheme.titleMedium,
               ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => ref
-                      .read(ttsControllerProvider.notifier)
-                      .speak(
-                        item.sourceText,
-                        languageByCode(item.sourceLanguageCode).localeHint,
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final speaking = ref.watch(ttsControllerProvider);
+                    return OutlinedButton.icon(
+                      onPressed: () async {
+                        if (ref.exists(recordingPlaybackProvider)) {
+                          await ref.read(recordingPlaybackProvider).stop();
+                        }
+                        if (!context.mounted) return;
+                        final tts = ref.read(ttsControllerProvider.notifier);
+                        if (speaking) {
+                          await tts.stop();
+                        } else {
+                          await tts.speak(
+                            item.sourceText,
+                            languageByCode(item.sourceLanguageCode).localeHint,
+                          );
+                        }
+                      },
+                      icon: Icon(
+                        speaking ? Icons.stop_rounded : Icons.volume_up_rounded,
                       ),
-                  icon: const Icon(Icons.volume_up_rounded),
-                  label: const Text('Play'),
+                      label: Text(speaking ? 'Stop reading' : 'Read aloud'),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 16),
@@ -193,7 +220,12 @@ void showHistoryDetailSheet(
         ),
       );
     },
-  );
+  ).whenComplete(() {
+    if (context.mounted && ref.exists(recordingPlaybackProvider)) {
+      ref.read(recordingPlaybackProvider).stop();
+    }
+    if (context.mounted) ref.read(ttsControllerProvider.notifier).stop();
+  });
 }
 
 Future<void> _setReminder(

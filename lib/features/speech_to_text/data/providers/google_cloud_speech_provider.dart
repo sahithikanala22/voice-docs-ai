@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'durable_recording_provider.dart';
+import '../../domain/transcript_segment.dart';
 import '../pending_recording_store.dart';
 import '../../domain/recording_phase.dart';
 
@@ -100,7 +101,17 @@ class GoogleCloudSpeechProvider extends DurableRecordingProvider {
           previous: item.transcript,
           segment: index + 1,
         );
-        await store.saveChunk(item.id, index, text);
+        await store.saveChunk(
+          item.id,
+          index,
+          text,
+          segments: extractSegments(
+            data,
+            requestStart: start / bytesPerSecond,
+            coreStart: coreStart / bytesPerSecond,
+            coreEnd: coreEnd / bytesPerSecond,
+          ),
+        );
         item = await store.get(item.id);
       }
       if (item.transcript.trim().isEmpty) {
@@ -202,6 +213,57 @@ class GoogleCloudSpeechProvider extends DurableRecordingProvider {
   /// Overlap gives boundary words context. Timed words belong to exactly one
   /// core interval by midpoint. Services omitting times use conservative text
   /// overlap matching; boundary fidelity then needs review against the audio.
+  static List<TranscriptSegment> extractSegments(
+    Map<String, dynamic> data, {
+    required double requestStart,
+    required double coreStart,
+    required double coreEnd,
+  }) {
+    final alternatives = ((data['results'] as List?) ?? [])
+        .expand((r) => ((r as Map)['alternatives'] as List? ?? []).take(1))
+        .cast<Map>()
+        .toList();
+    var words = alternatives
+        .expand((a) => (a['words'] as List? ?? []))
+        .cast<Map>()
+        .toList();
+    final lastWords = alternatives.lastOrNull?['words'] as List?;
+    if (lastWords != null &&
+        lastWords.any((w) => (w as Map)['speakerTag'] != null)) {
+      words = lastWords.cast<Map>();
+    }
+    final segments = <TranscriptSegment>[];
+    for (final word in words) {
+      final start = double.tryParse(
+        '${word['startTime']}'.replaceFirst('s', ''),
+      );
+      final end = double.tryParse('${word['endTime']}'.replaceFirst('s', ''));
+      if (start == null ||
+          end == null ||
+          !start.isFinite ||
+          !end.isFinite ||
+          start < 0 ||
+          end < start) {
+        continue;
+      }
+      final middle = requestStart + (start + end) / 2;
+      final text = word['word'] as String? ?? '';
+      if (middle < coreStart || middle >= coreEnd || text.trim().isEmpty) {
+        continue;
+      }
+      segments.add(
+        TranscriptSegment(
+          text: text,
+          start: Duration(
+            microseconds: ((requestStart + start) * 1000000).round(),
+          ),
+          end: Duration(microseconds: ((requestStart + end) * 1000000).round()),
+        ),
+      );
+    }
+    return segments;
+  }
+
   static String extractChunk(
     Map<String, dynamic> data, {
     required double requestStart,

@@ -30,7 +30,7 @@ class _DiaryScreenState extends ConsumerState<DiaryScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Diary'),
+        title: const Text('Journal'),
         actions: const [SettingsAction()],
       ),
       body: PaperBackground(

@@ -7,7 +7,7 @@ not part of the current app.
 ## Reproducible setup
 
 Use **Flutter 3.44.8 stable / Dart 3.12.2**, Java 17, and Android SDK 36.
-The project build number is 7. Keep build numbers increasing when updating an installed app to avoid a downgrade reinstall.
+The current app is **1.1.0, build 8**. Keep build numbers increasing when updating an installed app to avoid a downgrade reinstall.
 The committed `pubspec.lock` is the application dependency lockfile. Models use
 Freezed 3; their source classes are abstract and generated files are ignored.
 Regenerate them on every fresh checkout:
@@ -28,6 +28,33 @@ run `flutter pub get`, regenerate, run the checks, and commit the lockfile.
 
 Android and iOS are the intended platforms. The current app imports mobile
 plugins and `dart:io`; browser and desktop support are not advertised.
+
+## Today and Library
+
+The four destinations are **Today, Journal, Tasks, and Library**. Today brings
+together recording, journal writing, the calendar, upcoming tasks, and recent
+notes. Record a note opens the existing voice recorder; Record audio keeps audio
+without requiring a speech model. Calendar and voice-history management remain
+available from Today and Library respectively.
+
+Library searches the complete local collection of voice transcripts, journal
+titles/bodies, tasks, and retained audio transcripts. Filters combine content
+type, date, language, and voice/audio folder. Results are displayed in pages of
+50; filtering searches the full collection before pagination. Linked audio is
+shown with its note instead of a duplicate Library entry.
+
+Whisper and Google Cloud notes link to the retained original recording. The
+detail view supports playback, pause, seeking, and jumping to passages using
+recognizer timestamps from newly transcribed recordings. Older audio can still
+play without timestamps. Device dictation does not archive audio. Deleting a
+transcript does not delete its recording; deleted or unavailable audio leaves
+the text readable. Portable JSON backups include notes and audio references,
+but not the audio archive; export WAV separately when moving recordings.
+
+Playback uses one shared player. Navigating away, dismissing the note, starting
+another recording, or backgrounding stops playback. The original remains
+encrypted; temporary WAV playback copies are removed on stop and any abandoned
+playback cache is cleaned on the next cold start.
 
 ## Android first
 

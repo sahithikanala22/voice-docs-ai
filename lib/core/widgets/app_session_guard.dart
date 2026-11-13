@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
 import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/speech_providers.dart';
 import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/recording_playback_providers.dart';
 
 class AppSessionGuard extends ConsumerStatefulWidget {
   const AppSessionGuard({super.key, required this.child});
@@ -37,6 +38,9 @@ class _AppSessionGuardState extends ConsumerState<AppSessionGuard>
         ref.read(recordingCoordinatorProvider).stop(cancelTranscription: true),
       );
       unawaited(ref.read(ttsControllerProvider.notifier).stop());
+      if (ref.exists(recordingPlaybackProvider)) {
+        unawaited(ref.read(recordingPlaybackProvider).stop());
+      }
       ref.read(appLockControllerProvider.notifier).lock();
     }
   }

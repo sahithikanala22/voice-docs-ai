@@ -2,7 +2,7 @@ name: ai_voice_docs
 description: "Voice Docs AI — voice notes, a personal diary, calendar and tasks."
 publish_to: 'none'
 
-version: 1.0.0+7
+version: 1.1.0+8
 
 environment:
   sdk: ^3.12.2

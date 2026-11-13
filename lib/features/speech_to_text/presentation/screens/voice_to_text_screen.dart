@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:home_widget/home_widget.dart';
 import 'package:intl/intl.dart';
 
 import 'package:ai_voice_docs/core/constants/app_constants.dart';
@@ -44,7 +43,8 @@ import '../widgets/transcript_card.dart';
 /// itself never shrinks to accommodate that.
 
 class VoiceToTextScreen extends ConsumerStatefulWidget {
-  const VoiceToTextScreen({super.key});
+  const VoiceToTextScreen({super.key, this.autoStart = false});
+  final bool autoStart;
 
   @override
   ConsumerState<VoiceToTextScreen> createState() => _VoiceToTextScreenState();
@@ -53,7 +53,6 @@ class VoiceToTextScreen extends ConsumerStatefulWidget {
 class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
   Language _language = languageByCode(AppConstants.defaultSourceLanguageCode);
   bool _initializedFromSettings = false;
-  StreamSubscription<Uri?>? _widgetClickSubscription;
 
   /// The day a new recording should be filed under — always today unless
   /// explicitly backdated via [_pickDate]. Capped at today (never the
@@ -64,28 +63,16 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
   @override
   void initState() {
     super.initState();
-    // Covers both a cold start (app wasn't running) and a tap while the app
-    // is already alive in the background — the shell keeps this screen's
-    // state around the whole time, so one subscription handles both cases.
-    HomeWidget.initiallyLaunchedFromHomeWidget()
-        .then(_handleWidgetUri)
-        .catchError((Object _) {});
-    _widgetClickSubscription = HomeWidget.widgetClicked.listen(
-      _handleWidgetUri,
-      onError: (Object _) {},
-    );
+    if (widget.autoStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startFromWidget());
+    }
   }
 
-  void _handleWidgetUri(Uri? uri) {
-    if (uri?.host != 'record' ||
-        !mounted ||
+  void _startFromWidget() {
+    if (!mounted ||
         ref.read(appLockControllerProvider).value?.isUnlocked != true) {
       return;
     }
-    // Always call go(), even if this tab is already showing — harmless when
-    // already here, but necessary to bring this branch to the front of the
-    // indexed stack when another tab was open when the widget was tapped.
-    context.go('/');
     final recognition = ref.read(speechControllerProvider('home'));
     if (!recognition.isListening) {
       ref
@@ -100,12 +87,6 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
             timestamp: _entryTimestamp,
           );
     }
-  }
-
-  @override
-  void dispose() {
-    _widgetClickSubscription?.cancel();
-    super.dispose();
   }
 
   /// Today's entries keep the exact current time; a backdated entry defaults
@@ -302,7 +283,7 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Saved to History · ${DateFormat('d MMM').format(_recordingDate)}',
+                            'Saved to Library · ${DateFormat('d MMM').format(_recordingDate)}',
                             style: Theme.of(context).textTheme.labelLarge,
                           ),
                         ),
@@ -353,8 +334,8 @@ class _VoiceToTextScreenState extends ConsumerState<VoiceToTextScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => context.go('/history'),
-                      child: const Text('View history'),
+                      onPressed: () => context.go('/library'),
+                      child: const Text('Open Library'),
                     ),
                   ],
                 ),

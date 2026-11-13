@@ -14,6 +14,7 @@ import 'package:ai_voice_docs/features/app_lock/data/app_lock_repository_impl.da
 import 'app.dart';
 import 'features/speech_to_text/data/pending_recording_store.dart';
 import 'features/speech_to_text/data/providers/whisper_speech_provider.dart';
+import 'features/speech_to_text/data/recording_playback_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,9 @@ Future<void> main() async {
   }
   try {
     await WhisperSpeechProvider.cleanupScratch(await getTemporaryDirectory());
+    await RecordingPlaybackController.cleanupScratch(
+      await getTemporaryDirectory(),
+    );
   } catch (_) {
     // A cache cleanup failure must not prevent access to durable recordings.
   }

@@ -17,6 +17,47 @@ import 'package:ai_voice_docs/features/history/data/history_item.dart';
 import 'package:ai_voice_docs/features/history/presentation/providers/history_providers.dart';
 import 'package:ai_voice_docs/features/settings/presentation/providers/settings_providers.dart';
 import 'package:ai_voice_docs/features/tasks/presentation/providers/task_providers.dart';
+import 'package:ai_voice_docs/features/library/presentation/providers/library_providers.dart';
+import 'package:ai_voice_docs/features/diary/data/diary_entry.dart';
+import 'package:ai_voice_docs/core/storage/private_store.dart';
+import 'package:ai_voice_docs/features/speech_to_text/data/pending_recording_store.dart';
+import 'package:ai_voice_docs/features/speech_to_text/data/recording_playback_controller.dart';
+import 'package:ai_voice_docs/features/speech_to_text/domain/transcript_segment.dart';
+import 'package:ai_voice_docs/features/speech_to_text/presentation/providers/recording_playback_providers.dart';
+import 'package:ai_voice_docs/features/text_to_speech/presentation/providers/tts_providers.dart';
+
+class _SilentTts extends TtsController {
+  @override
+  bool build() => false;
+  @override
+  Future<void> stop() async {}
+}
+
+class _PreviewPlayback extends RecordingPlaybackController {
+  _PreviewPlayback(SharedPreferences prefs)
+    : super(PendingRecordingStore(PrivateStore(prefs)));
+  @override
+  Future<void> play(String id, {Duration? from}) async {
+    recordingId = id;
+    position = from ?? Duration.zero;
+    duration = const Duration(seconds: 20);
+    playing = true;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> pause() async {
+    playing = false;
+    notifyListeners();
+  }
+
+  @override
+  Future<void> stop() async {
+    recordingId = null;
+    playing = false;
+    notifyListeners();
+  }
+}
 
 class _Unlocked extends AppLockController {
   @override
@@ -62,6 +103,7 @@ void main() {
   Future<ProviderContainer> launch(
     WidgetTester tester, {
     Size size = const Size(412, 915),
+    bool withPlayback = false,
   }) async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
@@ -99,6 +141,33 @@ void main() {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         appLockControllerProvider.overrideWith(_Unlocked.new),
+        savedRecordingsProvider.overrideWith((ref) async => []),
+        if (withPlayback) ...[
+          ttsControllerProvider.overrideWith(_SilentTts.new),
+          recordingPlaybackProvider.overrideWith(
+            (ref) => _PreviewPlayback(prefs),
+          ),
+          retainedRecordingProvider('123').overrideWith(
+            (ref) async => PendingRecording(
+              id: '123',
+              locale: 'en-US',
+              createdAt: DateTime.now(),
+              byteLength: 640000,
+              segments: const [
+                TranscriptSegment(
+                  text: 'First passage',
+                  start: Duration.zero,
+                  end: Duration(seconds: 1),
+                ),
+                TranscriptSegment(
+                  text: 'Second passage',
+                  start: Duration(seconds: 16),
+                  end: Duration(seconds: 17),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
     addTearDown(container.dispose);
@@ -116,23 +185,29 @@ void main() {
   }
 
   testWidgets(
-    'five sections, diary save, task capture, calendar and appearance remain usable',
+    'Today, Journal, Tasks and Library connect recording, calendar and appearance',
     (tester) async {
       final container = await launch(tester);
       expect(
         Theme.of(tester.element(find.byType(NavigationBar))).brightness,
         Brightness.dark,
       );
-      for (final label in ['Voice', 'Diary', 'Calendar', 'Tasks', 'History']) {
+      for (final label in ['Today', 'Journal', 'Tasks', 'Library']) {
         expect(
           find.widgetWithText(NavigationDestination, label),
           findsOneWidget,
         );
       }
+      expect(find.text('Record a note'), findsOneWidget);
+      await capture(tester, 'app-today-dark');
+      await tester.tap(find.byKey(const ValueKey('today-record')));
+      await frames(tester);
       expect(find.text('Tap to record'), findsOneWidget);
       await capture(tester, 'app-voice-dark');
+      await tester.pageBack();
+      await frames(tester);
 
-      await tester.tap(find.widgetWithText(NavigationDestination, 'Diary'));
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Journal'));
       await frames(tester);
       expect(find.text('Write entry'), findsOneWidget);
       await tester.tap(find.text('Write entry'));
@@ -165,10 +240,14 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await capture(tester, 'app-diary-dark');
 
-      await tester.tap(find.widgetWithText(NavigationDestination, 'Calendar'));
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Today'));
+      await frames(tester);
+      await tester.tap(find.text('Calendar'));
       await frames(tester);
       expect(find.widgetWithText(AppBar, 'Calendar'), findsOneWidget);
       await capture(tester, 'app-calendar-dark');
+      await tester.pageBack();
+      await frames(tester);
 
       await tester.tap(find.widgetWithText(NavigationDestination, 'Tasks'));
       await frames(tester);
@@ -190,10 +269,13 @@ void main() {
               languageCode: 'en',
             ),
           );
-      await tester.tap(find.widgetWithText(NavigationDestination, 'History'));
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Today'));
+      await frames(tester);
+      await capture(tester, 'app-today-filled-dark');
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Library'));
       await frames(tester);
       expect(find.text('A productive morning.'), findsOneWidget);
-      await capture(tester, 'app-history-dark');
+      await capture(tester, 'app-library-dark');
 
       await tester.tap(find.byTooltip('Settings'));
       await frames(tester);
@@ -222,10 +304,15 @@ void main() {
       await capture(tester, 'app-appearance-light');
       await tester.pageBack();
       await frames(tester);
-      await tester.tap(find.widgetWithText(NavigationDestination, 'Voice'));
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Today'));
+      await frames(tester);
+      await capture(tester, 'app-today-light');
+      await tester.tap(find.byKey(const ValueKey('today-record')));
       await frames(tester);
       await capture(tester, 'app-voice-light');
-      await tester.tap(find.widgetWithText(NavigationDestination, 'Diary'));
+      await tester.pageBack();
+      await frames(tester);
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Journal'));
       await frames(tester);
       await capture(tester, 'app-diary-light');
       expect(tester.takeException(), isNull);
@@ -240,13 +327,134 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await frames(tester);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.widgetWithText(NavigationDestination, 'Diary'));
+      await capture(tester, 'app-today-narrow-dark');
+      await tester.tap(find.byKey(const ValueKey('today-record')));
+      await frames(tester);
+      expect(find.text('Tap to record'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pageBack();
+      await frames(tester);
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Library'));
+      await frames(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('library-search')),
+        'nothing',
+      );
+      await frames(tester);
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Journal'));
       await frames(tester);
       expect(find.text('Dictate'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.tap(find.text('Write entry'));
       await frames(tester);
       expect(find.text('Photo'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'a linked voice note plays audio, seeks to a passage and stops on close',
+    (tester) async {
+      final container = await launch(tester, withPlayback: true);
+      await container
+          .read(historyControllerProvider.notifier)
+          .addEntry(
+            HistoryItem(
+              id: 'recovered-cloud-123',
+              recordingId: '123',
+              sourceText: 'A linked voice note.',
+              sourceLanguageCode: 'en',
+              timestamp: DateTime.now(),
+            ),
+          );
+      await frames(tester);
+      await tester.scrollUntilVisible(
+        find.text('A linked voice note.'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('A linked voice note.'));
+      await frames(tester);
+      expect(find.text('Original recording'), findsOneWidget);
+      await capture(tester, 'app-audio-note-dark');
+      await tester.ensureVisible(find.byTooltip('Play original audio'));
+      await tester.tap(find.byTooltip('Play original audio'));
+      await frames(tester);
+      final player = container.read(recordingPlaybackProvider);
+      expect(player.recordingId, '123');
+      expect(player.playing, isTrue);
+      await tester.tap(find.byTooltip('Pause original audio'));
+      await frames(tester);
+      expect(player.playing, isFalse);
+      await tester.ensureVisible(find.text('Second passage'));
+      await tester.tap(find.text('Second passage'));
+      await frames(tester);
+      expect(player.position, const Duration(seconds: 16));
+      expect(player.playing, isTrue);
+      await tester.binding.handlePopRoute();
+      await frames(tester);
+      expect(player.playing, isFalse);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'unified search opens journal and task results and updates after completion',
+    (tester) async {
+      final container = await launch(tester);
+      final now = DateTime.now();
+      await container
+          .read(historyControllerProvider.notifier)
+          .addEntry(
+            HistoryItem.voice(text: 'Project recording.', languageCode: 'en'),
+          );
+      await container
+          .read(diaryControllerProvider.notifier)
+          .save(
+            DiaryEntry(
+              id: 'search-journal',
+              date: now,
+              createdAt: now,
+              updatedAt: now,
+              title: 'Project reflection',
+              body: 'A productive project meeting.',
+            ),
+          );
+      await container
+          .read(taskControllerProvider.notifier)
+          .addTask('Project follow-up');
+      await tester.tap(find.widgetWithText(NavigationDestination, 'Library'));
+      await frames(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('library-search')),
+        'project',
+      );
+      await frames(tester);
+      expect(find.text('3 items'), findsOneWidget);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Journal'));
+      await frames(tester);
+      expect(find.text('1 item'), findsOneWidget);
+      await tester.tap(find.text('Project reflection'));
+      await frames(tester);
+      expect(find.text('A productive project meeting.'), findsOneWidget);
+      await tester.pageBack();
+      await frames(tester);
+      await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Tasks'));
+      await frames(tester);
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Tasks'));
+      await frames(tester);
+      await tester.tap(find.text('Project follow-up'));
+      await frames(tester);
+      await tester.tap(find.text('Complete task'));
+      await frames(tester);
+      expect(
+        container.read(taskControllerProvider).requireValue.single.isDoneNow,
+        isTrue,
+      );
+      await tester.tap(find.byTooltip('Clear search'));
+      await frames(tester);
+      expect(find.text('1 item'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

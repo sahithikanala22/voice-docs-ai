@@ -18,7 +18,7 @@ bool matchesSearch(String text, String query) {
 // script, not just a-z0-9 — the app supports 60+ languages, and an
 // ASCII-only split would treat a whole non-Latin entry (Hindi, Telugu,
 // etc.) as one giant separator, leaving zero words to match against.
-final _wordBoundary = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+final _wordBoundary = RegExp(r'[^\p{L}\p{M}\p{N}]+', unicode: true);
 
 List<String> _normalizedWords(String input) {
   return input

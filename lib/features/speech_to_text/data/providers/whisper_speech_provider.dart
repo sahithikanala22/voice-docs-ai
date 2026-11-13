@@ -6,6 +6,7 @@ import 'package:whisper_ggml/whisper_ggml.dart';
 import '../pending_recording_store.dart';
 import '../whisper_model_store.dart';
 import '../../domain/recording_phase.dart';
+import '../../domain/transcript_segment.dart';
 import 'durable_recording_provider.dart';
 
 class WhisperWord {
@@ -180,19 +181,38 @@ class WhisperSpeechProvider extends DurableRecordingProvider {
         // Native file inference cannot be aborted by this plugin. Ignore its
         // result after cancellation and do not start any subsequent chunk.
         checkCancelled();
-        final text = words
-            .where((word) {
-              final middle =
-                  start / bytesPerSecond +
-                  (word.start.inMicroseconds + word.end.inMicroseconds) /
-                      2000000;
-              return middle >= coreStart / bytesPerSecond &&
-                  middle < coreEnd / bytesPerSecond;
-            })
+        final selected = words.where((word) {
+          final middle =
+              start / bytesPerSecond +
+              (word.start.inMicroseconds + word.end.inMicroseconds) / 2000000;
+          return middle >= coreStart / bytesPerSecond &&
+              middle < coreEnd / bytesPerSecond;
+        }).toList();
+        final text = selected
             .map((word) => word.text.trim())
             .where((text) => text.isNotEmpty)
             .join(' ');
-        await store.saveChunk(item.id, index, text);
+        final origin = Duration(
+          microseconds: start * 1000000 ~/ bytesPerSecond,
+        );
+        await store.saveChunk(
+          item.id,
+          index,
+          text,
+          segments: [
+            for (final word in selected)
+              if (word.text.trim().isNotEmpty &&
+                  word.start >= Duration.zero &&
+                  word.end >= word.start)
+                TranscriptSegment(
+                  text: word.text.trim(),
+                  start: origin + word.start,
+                  end: origin + word.end > item.duration
+                      ? item.duration
+                      : origin + word.end,
+                ),
+          ],
+        );
         item = await store.get(item.id);
       }
       checkCancelled();

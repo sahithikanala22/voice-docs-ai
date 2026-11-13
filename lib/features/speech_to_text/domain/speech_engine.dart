@@ -28,7 +28,7 @@ extension SpeechEnginePrivacy on SpeechEngine {
     SpeechEngine.whisper =>
       'Whisper — Free Offline: download the multilingual base model once in Settings. Recording and transcription then stay on this device, with no API key or cloud fallback. Text appears after Stop. Audio remains in Saved recordings until you delete it.',
     SpeechEngine.onDevice =>
-      'Device speech recognition: your phone\'s speech service processes audio. It may use the internet or send audio to its provider; offline support depends on downloaded languages and device settings.',
+      'Device speech recognition: your phone\'s speech service processes audio. It may use the internet or send audio to its provider; offline support depends on downloaded languages and device settings. This mode saves text only. Choose Record audio to keep the original recording.',
     SpeechEngine.googleCloud =>
       'Google Cloud speech: audio is saved on this device before upload. Transcription uses requests of at most 54 seconds; internet and an API key are required and charges may apply. Audio stays in Recover recordings until you delete it.',
   };

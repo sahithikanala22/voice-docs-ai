@@ -9,6 +9,7 @@ import 'package:ai_voice_docs/core/providers/core_providers.dart';
 import 'package:ai_voice_docs/features/app_lock/data/app_lock_account.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_providers.dart';
 import 'package:ai_voice_docs/features/app_lock/presentation/providers/app_lock_state.dart';
+import 'package:ai_voice_docs/features/library/presentation/providers/library_providers.dart';
 
 /// Stands in for [AppLockController] so widget tests skip signup/PIN entry
 /// entirely and land straight on the app's home tab.
@@ -23,7 +24,7 @@ class _FakeUnlockedAppLockController extends AppLockController {
 }
 
 void main() {
-  testWidgets('App launches on the voice-to-text home tab with bottom nav', (
+  testWidgets('App launches on Today with the four primary destinations', (
     tester,
   ) async {
     FlutterSecureStorage.setMockInitialValues({});
@@ -45,6 +46,7 @@ void main() {
           appLockControllerProvider.overrideWith(
             _FakeUnlockedAppLockController.new,
           ),
+          savedRecordingsProvider.overrideWith((ref) async => []),
         ],
         child: const AiVoiceDocsApp(),
       ),
@@ -59,11 +61,14 @@ void main() {
     // "Today" also appears on the new date-selector chip, so target the
     // app bar's title specifically rather than asserting there's only one.
     expect(find.widgetWithText(AppBar, 'Voice Docs AI'), findsOneWidget);
-    expect(find.text('Voice'), findsOneWidget);
-    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Library'), findsOneWidget);
     expect(find.byTooltip('Settings'), findsOneWidget);
-    expect(find.widgetWithText(NavigationDestination, 'Diary'), findsOneWidget);
-    expect(find.text('Tap to record'), findsOneWidget);
+    expect(
+      find.widgetWithText(NavigationDestination, 'Journal'),
+      findsOneWidget,
+    );
+    expect(find.text('Record a note'), findsOneWidget);
   });
   testWidgets('unreadable protected account fails closed', (tester) async {
     FlutterSecureStorage.setMockInitialValues({});

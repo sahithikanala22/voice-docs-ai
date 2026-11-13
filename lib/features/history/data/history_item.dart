@@ -28,6 +28,9 @@ abstract class HistoryItem with _$HistoryItem {
     /// When set, a local notification is scheduled for this moment — see
     /// `NotificationService.scheduleReminder`. Null means no reminder.
     DateTime? reminderAt,
+
+    /// Device-local retained audio; it may be unavailable after a restore.
+    String? recordingId,
   }) = _HistoryItem;
 
   factory HistoryItem.fromJson(Map<String, dynamic> json) =>
